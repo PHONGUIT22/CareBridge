@@ -8,11 +8,11 @@ export interface DailyLogItem {
   medicineId: string;
   name: string;
   dosage: string;
-  scheduledTime: string; // e.g. "09:00"
-  date: string;          // ISO date format: YYYY-MM-DD
+  scheduledTime: string; // e.g. "08:00"
+  date: string;          // ISO format: YYYY-MM-DD
   status: LogStatus;
   isTaken: boolean;
-  takenAt?: string;      // e.g. "09:15"
+  takenAt?: string;
 }
 
 const DAY_MAP: Record<number, string> = {
@@ -27,7 +27,7 @@ const DAY_MAP: Record<number, string> = {
 
 export const LogRepo = {
   /**
-   * Scan all medications and generate initial 'pending' intake records for a given date
+   * Scan medications and generate logs ONLY if date >= medicine creation date
    */
   async generateLogsForDate(dateStr: string): Promise<void> {
     const db = await getDatabase();
@@ -38,7 +38,25 @@ export const LogRepo = {
     if (allMeds.length === 0) return;
 
     await db.withTransactionAsync(async () => {
+      // 1. Automatically clean up records prior to medicine creation date
+      await db.runAsync(`
+        DELETE FROM intake_logs 
+        WHERE date < (
+          SELECT substr(created_at, 1, 10) 
+          FROM medicines 
+          WHERE medicines.id = intake_logs.medicine_id
+        )
+      `);
+
+      // 2. Only generate logs for medications existing on that date
       for (const med of allMeds) {
+        const medStartDate = med.createdAt.split('T')[0]; // "YYYY-MM-DD"
+
+        // Business rule: If target date is before medicine creation date -> SKIP
+        if (dateStr < medStartDate) {
+          continue;
+        }
+
         const isScheduledToday =
           med.daysOfWeek.includes('ALL') ||
           med.daysOfWeek.includes(dayCode);
@@ -60,11 +78,12 @@ export const LogRepo = {
   },
 
   /**
-   * Fetch intake logs joined with medication details for UI display (Calendar & Dashboard)
+   * Fetch intake logs joined with medication details for UI display
    */
   async getLogsByDate(dateStr: string): Promise<DailyLogItem[]> {
     const db = await getDatabase();
 
+    // Ensure valid logs exist for this date
     await this.generateLogsForDate(dateStr);
 
     const query = `
@@ -79,7 +98,7 @@ export const LogRepo = {
         l.taken_at as takenAt
       FROM intake_logs l
       INNER JOIN medicines m ON l.medicine_id = m.id
-      WHERE l.date = ?
+      WHERE l.date = ? AND l.date >= substr(m.created_at, 1, 10)
       ORDER BY l.time ASC, m.name ASC
     `;
 
@@ -146,6 +165,7 @@ export const LogRepo = {
         l.taken_at as takenAt
       FROM intake_logs l
       INNER JOIN medicines m ON l.medicine_id = m.id
+      WHERE l.date >= substr(m.created_at, 1, 10)
       ORDER BY l.date DESC, l.time ASC
     `;
 

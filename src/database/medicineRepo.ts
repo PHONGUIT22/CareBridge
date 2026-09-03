@@ -18,9 +18,6 @@ export interface MedicineRecord {
 }
 
 export const MedicineRepo = {
-  /**
-   * Persist a new medication schedule into SQLite
-   */
   async addMedicine(input: MedicineInput): Promise<string> {
     const db = await getDatabase();
     const id = input.id || `med_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -42,9 +39,6 @@ export const MedicineRepo = {
     return id;
   },
 
-  /**
-   * Update an existing medication schedule
-   */
   async updateMedicine(id: string, input: MedicineInput): Promise<void> {
     const db = await getDatabase();
     await db.runAsync(
@@ -61,9 +55,6 @@ export const MedicineRepo = {
     );
   },
 
-  /**
-   * Retrieve all saved medications
-   */
   async getAllMedicines(): Promise<MedicineRecord[]> {
     const db = await getDatabase();
     const rows = await db.getAllAsync<{
@@ -86,10 +77,13 @@ export const MedicineRepo = {
   },
 
   /**
-   * Delete medication and automatically cascade delete related intake logs
+   * Permanently delete medicine and wipe its intake logs
    */
   async deleteMedicine(id: string): Promise<void> {
     const db = await getDatabase();
-    await db.runAsync('DELETE FROM medicines WHERE id = ?', [id]);
+    await db.withTransactionAsync(async () => {
+      await db.runAsync('DELETE FROM intake_logs WHERE medicine_id = ?', [id]);
+      await db.runAsync('DELETE FROM medicines WHERE id = ?', [id]);
+    });
   },
 };

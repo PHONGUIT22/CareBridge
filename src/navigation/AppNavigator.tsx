@@ -11,7 +11,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 export type RootTabParamList = {
   Today: undefined;
   History: undefined;
-  DeskMode: undefined; // <-- Tab Đồng hồ rảnh tay
+  DeskMode: undefined; // <-- Hands-free desk clock tab
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -19,7 +19,7 @@ const Tab = createBottomTabNavigator<RootTabParamList>();
 export const AppNavigator: React.FC = () => {
   const { isFlexMode } = useFlexMode();
 
-  // 1. TỰ ĐỘNG PHÓNG TO ĐỒNG HỒ KHI GẬP MÁY 90 ĐỘ HOẶC XOAY NGANG
+  // 1. Automatically enlarge clock when folded 90 degrees or in landscape mode
   if (isFlexMode) {
     return (
       <View style={styles.flexContainer}>
@@ -28,7 +28,7 @@ export const AppNavigator: React.FC = () => {
     );
   }
 
-  // 2. GIAO DIỆN CHUẨN 3 TAB ĐẦY ĐỦ
+  // 2. Standard 3-tab layout
   return (
     <Tab.Navigator
       initialRouteName="Today"
@@ -41,7 +41,7 @@ export const AppNavigator: React.FC = () => {
         tabBarItemStyle: styles.tabBarItem,
       }}
     >
-      {/* TAB 1: LỊCH HÔM NAY */}
+      {/* TAB 1: TODAY SCHEDULE */}
       <Tab.Screen
         name="Today"
         component={MedicineManagerScreen}
@@ -57,7 +57,7 @@ export const AppNavigator: React.FC = () => {
         }}
       />
 
-      {/* TAB 2: LỊCH SỬ ĐỤC LỖ HABITBOX */}
+      {/* TAB 2: HABITBOX PUNCH-CARD HISTORY */}
       <Tab.Screen
         name="History"
         component={HistoryScreen}
@@ -73,7 +73,7 @@ export const AppNavigator: React.FC = () => {
         }}
       />
 
-      {/* TAB 3: ĐỒNG HỒ RẢNH TAY BÀN ĐÊM */}
+      {/* TAB 3: NIGHTSTAND DESK CLOCK */}
       <Tab.Screen
         name="DeskMode"
         component={DeskModeScreen}

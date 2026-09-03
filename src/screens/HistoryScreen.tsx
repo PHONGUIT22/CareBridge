@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,28 +11,32 @@ import {
   Platform,
   StatusBar,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { THEME } from '../constants/theme';
 import { LogRepo, DailyLogItem } from '../database/logRepo';
 import { MedicineRepo, MedicineRecord } from '../database/medicineRepo';
 import { MedicationPunchCard } from '../components/MedicationPunchCard';
 import { Feather, Ionicons } from '@expo/vector-icons';
+import { PaywallModal } from '../components/PaywallModal';
+import { SubscriptionService } from '../services/revenuecat';
+import { PdfService } from '../services/pdfService';
 
-// Bảng màu rực rỡ phong cách HabitBox cho từng loại thuốc
 const CARD_PALETTES = [
-  '#EA580C', // Cam rực (như Morning Exercise trong ảnh mẫu)
-  '#7C3AED', // Tím đậm (như Meditation trong ảnh mẫu)
-  '#059669', // Xanh ngọc lục bảo (như Reading)
-  '#0284C7', // Xanh dương biển (như Drink Water)
-  '#D97706', // Vàng cam ấm (như Guitar Practice)
-  '#1E3A8A', // Xanh Navy y tế
+  '#EA580C', // Orange
+  '#7C3AED', // Purple
+  '#059669', // Emerald green
+  '#0284C7', // Ocean blue
+  '#D97706', // Warm amber
+  '#1E3A8A', // Navy
 ];
 
 export const HistoryScreen: React.FC = () => {
   const [logs, setLogs] = useState<DailyLogItem[]>([]);
   const [medicines, setMedicines] = useState<MedicineRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isPaywallVisible, setIsPaywallVisible] = useState(false);
 
-  const fetchHistory = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [allLogs, allMeds] = await Promise.all([
@@ -48,16 +52,50 @@ export const HistoryScreen: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
-  const handleExportPDF = () => {
+  const handleDeleteMedication = (id: string, name: string) => {
     Alert.alert(
-      'Clinical Report Export',
-      'HabitBox Punch-card compliance history has been prepared for doctor review.',
-      [{ text: 'OK' }]
+      'Delete Punch-Card',
+      `Are you sure you want to permanently delete "${name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await MedicineRepo.deleteMedicine(id);
+            await loadData();
+          },
+        },
+      ]
     );
+  };
+
+  // NÚT XUẤT PDF CÓ KHÓA PAYWALL
+  const handleExportPDF = async () => {
+    const isPro = await SubscriptionService.isPro();
+
+    // 1. CHƯA MUA PRO -> MỞ PAYWALL NGAY
+    if (!isPro) {
+      setIsPaywallVisible(true);
+      return;
+    }
+
+    // 2. ĐÃ MUA PRO -> XUẤT FILE PDF THẬT
+    try {
+      const [allLogs, allMeds] = await Promise.all([
+        LogRepo.getAllLogs(),
+        MedicineRepo.getAllMedicines(),
+      ]);
+      await PdfService.generateDoctorReport(allLogs, allMeds);
+    } catch (err) {
+      Alert.alert('Error', 'Could not generate PDF report.');
+    }
   };
 
   return (
@@ -80,7 +118,7 @@ export const HistoryScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {loading ? (
+        {loading && medicines.length === 0 ? (
           <View style={styles.centerContainer}>
             <ActivityIndicator size="large" color={THEME.colors.primary} />
             <Text style={styles.loadingText}>Loading punch-card matrix...</Text>
@@ -99,21 +137,39 @@ export const HistoryScreen: React.FC = () => {
             const primaryTime = med.reminderTimes[0] || '08:00';
 
             return (
-              <MedicationPunchCard
-                key={med.id}
-                medicineName={med.name}
-                dosage={med.dosage}
-                time={primaryTime}
-                themeColor={color}
-                logs={logs}
-                onToggleToday={async () => {
-                  await fetchHistory();
-                }}
-              />
+              <View key={med.id} style={styles.cardWrapper}>
+                <MedicationPunchCard
+                  medicineName={med.name}
+                  dosage={med.dosage}
+                  time={primaryTime}
+                  createdAt={med.createdAt}
+                  themeColor={color}
+                  logs={logs}
+                  onToggleToday={async () => {
+                    const freshLogs = await LogRepo.getAllLogs();
+                    setLogs(freshLogs);
+                  }}
+                />
+
+                <TouchableOpacity
+                  style={styles.deleteBadgeBtn}
+                  onPress={() => handleDeleteMedication(med.id, med.name)}
+                  activeOpacity={0.7}
+                >
+                  <Feather name="trash-2" size={14} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
             );
           })
         )}
       </ScrollView>
+
+      {/* 3. REVENUECAT PAYWALL MODAL */}
+      <PaywallModal
+        visible={isPaywallVisible}
+        onClose={() => setIsPaywallVisible(false)}
+        onUnlocked={handleExportPDF}
+      />
     </SafeAreaView>
   );
 };
@@ -164,6 +220,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 40,
+  },
+  cardWrapper: {
+    position: 'relative',
+  },
+  deleteBadgeBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 58,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
   centerContainer: {
     alignItems: 'center',

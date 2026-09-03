@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,12 +12,15 @@ import {
   StatusBar,
   Alert,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { THEME } from '../constants/theme';
 import { CalendarStrip } from '../components/CalendarStrip';
 import { MedicineCard } from '../components/MedicineCard';
 import { useMedicines } from '../hooks/useMedicines';
 import { MedicineRepo } from '../database/medicineRepo';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { PaywallModal } from '../components/PaywallModal';
+import { SubscriptionService } from '../services/revenuecat';
 
 const PRESET_MEDICINES = [
   { name: 'Blood Pressure', icon: 'heart-pulse', defaultDose: '1 Tablet' },
@@ -38,13 +41,43 @@ export const MedicineManagerScreen: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const { timeGroups, loading, refresh, handleToggleTake } = useMedicines(selectedDate);
 
+  const todayStr = new Date().toISOString().split('T')[0];
+  const selectedDateStr = selectedDate.toISOString().split('T')[0];
+  const isFutureDate = selectedDateStr > todayStr;
+
+  // Subscription State
+  const [isPro, setIsPro] = useState(false);
+  const [medsCount, setMedsCount] = useState(0);
+
   // Modal State
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingMedId, setEditingMedId] = useState<string | null>(null); // null = Thêm mới, có ID = Chế độ Sửa/Xóa
+  const [isPaywallVisible, setIsPaywallVisible] = useState(false);
+  const [editingMedId, setEditingMedId] = useState<string | null>(null);
   const [selectedMedName, setSelectedMedName] = useState(PRESET_MEDICINES[0].name);
   const [selectedDose, setSelectedDose] = useState('1 Tablet');
   const [selectedTime, setSelectedTime] = useState('08:00');
   const [selectedDays, setSelectedDays] = useState<string[]>(['ALL']);
+
+  const updateSubscriptionState = useCallback(async () => {
+    const proStatus = await SubscriptionService.isPro();
+    const allMeds = await MedicineRepo.getAllMedicines();
+    setIsPro(proStatus);
+    setMedsCount(allMeds.length);
+  }, []);
+
+  // Automatically sync Pro status and refresh medication list on tab focus
+  useFocusEffect(
+    useCallback(() => {
+      async function syncData() {
+        const proStatus = await SubscriptionService.isPro();
+        const allMeds = await MedicineRepo.getAllMedicines();
+        setIsPro(proStatus);
+        setMedsCount(allMeds.length);
+        await refresh(); // <-- Automatically refresh medication list on tab focus
+      }
+      syncData();
+    }, [refresh])
+  );
 
   const formattedDayTitle = selectedDate.toLocaleDateString('en-US', {
     weekday: 'long',
@@ -52,7 +85,16 @@ export const MedicineManagerScreen: React.FC = () => {
     day: 'numeric',
   });
 
-  const openAddModal = () => {
+  // HÀM MỞ POPUP THÊM THUỐC (CHẶN NẾU ĐÃ CÓ >= 2 THUỐC Ở BẢN FREE)
+  const openAddModal = async () => {
+    const currentPro = await SubscriptionService.isPro();
+    const allMeds = await MedicineRepo.getAllMedicines();
+
+    if (!currentPro && allMeds.length >= 2) {
+      setIsPaywallVisible(true); // BẬT PAYWALL NGAY
+      return;
+    }
+
     setEditingMedId(null);
     setSelectedMedName(PRESET_MEDICINES[0].name);
     setSelectedDose('1 Tablet');
@@ -85,11 +127,9 @@ export const MedicineManagerScreen: React.FC = () => {
     setSelectedDays(newDays);
   };
 
-  // 1. LƯU HOẶC CẬP NHẬT
   const handleSaveMedicine = async () => {
     try {
       if (editingMedId) {
-        // Cập nhật thuốc cũ
         await MedicineRepo.updateMedicine(editingMedId, {
           name: selectedMedName,
           dosage: selectedDose,
@@ -98,7 +138,6 @@ export const MedicineManagerScreen: React.FC = () => {
         });
         Alert.alert('Updated', `Prescription "${selectedMedName}" updated!`);
       } else {
-        // Thêm thuốc mới
         await MedicineRepo.addMedicine({
           name: selectedMedName,
           dosage: selectedDose,
@@ -109,14 +148,13 @@ export const MedicineManagerScreen: React.FC = () => {
       }
 
       setIsModalVisible(false);
+      await updateSubscriptionState();
       await refresh();
     } catch (error) {
-      console.error(error);
       Alert.alert('Error', 'Could not save medication');
     }
   };
 
-  // 2. XÓA ĐƠN THUỐC
   const handleDeleteMedicine = () => {
     if (!editingMedId) return;
 
@@ -129,14 +167,11 @@ export const MedicineManagerScreen: React.FC = () => {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            try {
-              await MedicineRepo.deleteMedicine(editingMedId);
-              setIsModalVisible(false);
-              await refresh();
-              Alert.alert('Deleted', `"${selectedMedName}" has been removed.`);
-            } catch (err) {
-              Alert.alert('Error', 'Could not delete medication.');
-            }
+            await MedicineRepo.deleteMedicine(editingMedId);
+            setIsModalVisible(false);
+            await updateSubscriptionState();
+            await refresh();
+            Alert.alert('Deleted', `"${selectedMedName}" has been removed.`);
           },
         },
       ]
@@ -163,7 +198,28 @@ export const MedicineManagerScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* 2. CALENDAR STRIP */}
+      {/* 2. FREEMIUM TIER STATUS BANNER */}
+      <View style={styles.planBanner}>
+        {isPro ? (
+          <View style={styles.proBannerContent}>
+            <MaterialCommunityIcons name="crown" size={18} color="#B45309" />
+            <Text style={styles.proBannerText}>CAREBRIDGE PRO: Unlimited Prescriptions Active</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.freeBannerContent}
+            onPress={() => setIsPaywallVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.freeBannerText}>
+              Free Plan: <Text style={{ fontWeight: '900' }}>{medsCount}/2</Text> Prescriptions Used
+            </Text>
+            <Text style={styles.upgradeText}>Upgrade Pro →</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* 3. CALENDAR STRIP */}
       <View style={styles.calendarContainer}>
         <CalendarStrip
           selectedDate={selectedDate}
@@ -171,7 +227,7 @@ export const MedicineManagerScreen: React.FC = () => {
         />
       </View>
 
-      {/* 3. MEDICINE LIST */}
+      {/* 4. MEDICINE LIST */}
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -204,9 +260,15 @@ export const MedicineManagerScreen: React.FC = () => {
                   dosage={item.dosage}
                   intakeCount={1}
                   isTaken={item.isTaken}
+                  isFuture={isFutureDate}
                   takenAt={item.takenAt}
-                  onToggleTake={() => handleToggleTake(item.logId, item.status)}
-                  // BẤM VÀO ĐỂ SỬA / XÓA
+                  onToggleTake={() => {
+                    if (isFutureDate) {
+                      Alert.alert('Notice', 'Cannot take future medications in advance.');
+                      return;
+                    }
+                    handleToggleTake(item.logId, item.status);
+                  }}
                   onPressCard={() =>
                     openEditModal(item.medicineId, item.name, item.dosage, item.scheduledTime)
                   }
@@ -217,7 +279,7 @@ export const MedicineManagerScreen: React.FC = () => {
         )}
       </ScrollView>
 
-      {/* 4. FLOATING ACTION BUTTON */}
+      {/* 5. FLOATING ACTION BUTTON */}
       <View style={styles.floatingButtonContainer}>
         <TouchableOpacity
           style={styles.floatingActionButton}
@@ -229,7 +291,7 @@ export const MedicineManagerScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* 5. MODAL THÊM / SỬA / XÓA */}
+      {/* 6. MODAL THÊM / SỬA */}
       <Modal
         visible={isModalVisible}
         animationType="slide"
@@ -248,7 +310,6 @@ export const MedicineManagerScreen: React.FC = () => {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Step 1: Chọn tên thuốc */}
               <Text style={styles.sectionLabel}>1. SELECT MEDICINE</Text>
               <View style={styles.medGrid}>
                 {PRESET_MEDICINES.map((med) => {
@@ -276,7 +337,6 @@ export const MedicineManagerScreen: React.FC = () => {
                 })}
               </View>
 
-              {/* Step 2: Chọn liều lượng */}
               <Text style={styles.sectionLabel}>2. SELECT DOSE</Text>
               <View style={styles.chipsRow}>
                 {PRESET_DOSES.map((dose) => {
@@ -295,7 +355,6 @@ export const MedicineManagerScreen: React.FC = () => {
                 })}
               </View>
 
-              {/* Step 3: Chọn giờ uống */}
               <Text style={styles.sectionLabel}>3. TIME TO TAKE</Text>
               <View style={styles.chipsRow}>
                 {PRESET_TIMES.map((time) => {
@@ -314,7 +373,6 @@ export const MedicineManagerScreen: React.FC = () => {
                 })}
               </View>
 
-              {/* Step 4: Tần suất */}
               <Text style={styles.sectionLabel}>4. FREQUENCY</Text>
               <View style={styles.chipsRow}>
                 <TouchableOpacity
@@ -339,7 +397,6 @@ export const MedicineManagerScreen: React.FC = () => {
                 ))}
               </View>
 
-              {/* NÚT LƯU HOẶC CẬP NHẬT */}
               <TouchableOpacity
                 style={styles.saveCta}
                 onPress={handleSaveMedicine}
@@ -350,7 +407,6 @@ export const MedicineManagerScreen: React.FC = () => {
                 </Text>
               </TouchableOpacity>
 
-              {/* NÚT XÓA ĐỎ NỔI BẬT (CHỈ HIỆN KHI Ở CHẾ ĐỘ SỬA) */}
               {editingMedId && (
                 <TouchableOpacity
                   style={styles.deleteCta}
@@ -365,6 +421,16 @@ export const MedicineManagerScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
+
+      {/* 7. PAYWALL MODAL */}
+      <PaywallModal
+        visible={isPaywallVisible}
+        onClose={() => setIsPaywallVisible(false)}
+        onUnlocked={() => {
+          setIsPro(true);
+          openAddModal();
+        }}
+      />
     </SafeAreaView>
   );
 };
@@ -380,7 +446,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 8,
+    paddingBottom: 4,
   },
   headerLeft: {
     flex: 1,
@@ -406,6 +472,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...THEME.shadows.card,
+  },
+  planBanner: {
+    marginHorizontal: 20,
+    marginVertical: 6,
+  },
+  proBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEF3C7',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  proBannerText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#B45309',
+  },
+  freeBannerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  freeBannerText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1E40AF',
+  },
+  upgradeText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: THEME.colors.primary,
   },
   calendarContainer: {
     marginBottom: 4,
@@ -598,7 +705,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   deleteCta: {
-    backgroundColor: THEME.colors.statusSkipped, // Màu đỏ xóa
+    backgroundColor: THEME.colors.statusSkipped,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

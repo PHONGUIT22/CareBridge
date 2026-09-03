@@ -6,7 +6,7 @@ interface SeniorClockProps {
   dark?: boolean;
 }
 
-export const SeniorClock: React.FC<SeniorClockProps> = ({ dark = false }) => {
+export const SeniorClock: React.FC<SeniorClockProps> = ({ dark = true }) => {
   const [time, setTime] = useState<Date>(new Date());
 
   useEffect(() => {
@@ -29,10 +29,15 @@ export const SeniorClock: React.FC<SeniorClockProps> = ({ dark = false }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.timeText, dark ? styles.textLight : styles.textDark]}>
-        {hours}:{minutes}
+      {/* GIANT DIGITAL CLOCK */}
+      <View style={styles.clockRow}>
+        <Text style={[styles.timeText, dark ? styles.textLight : styles.textDark]}>
+          {hours}:{minutes}
+        </Text>
         <Text style={styles.secondsText}>:{seconds}</Text>
-      </Text>
+      </View>
+
+      {/* BIG ACCENT DATE */}
       <Text style={[styles.dateText, dark ? styles.dateLight : styles.dateDark]}>
         {formattedDate}
       </Text>
@@ -44,35 +49,44 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 10,
+  },
+  clockRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
   },
   timeText: {
-    fontSize: 56,
+    fontSize: 78,
     fontWeight: '900',
     letterSpacing: 2,
     fontVariant: ['tabular-nums'],
   },
   secondsText: {
-    fontSize: 28,
+    fontSize: 34,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#64748B',
+    fontVariant: ['tabular-nums'],
+    marginLeft: 4,
   },
   textDark: {
-    color: THEME.colors.textPrimary,
+    color: THEME.light.textPrimary,
   },
   textLight: {
     color: '#FFFFFF',
+    textShadowColor: 'rgba(56, 189, 248, 0.35)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 15,
   },
   dateText: {
-    fontSize: THEME.fontSizes.sm,
+    fontSize: 15,
     fontWeight: '800',
-    marginTop: 6,
-    letterSpacing: 1.2,
+    marginTop: 8,
+    letterSpacing: 1.5,
   },
   dateDark: {
     color: THEME.colors.primary,
   },
   dateLight: {
-    color: '#60A5FA',
+    color: '#38BDF8', // Cyan glowing night mode
   },
 });

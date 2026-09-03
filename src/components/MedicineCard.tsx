@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { THEME } from '../constants/theme';
 import { Feather, Ionicons } from '@expo/vector-icons';
 
@@ -8,9 +8,10 @@ interface MedicineCardProps {
   dosage: string;
   intakeCount?: number;
   isTaken: boolean;
+  isFuture?: boolean; // <-- Lock if date is in the future
   takenAt?: string;
   onToggleTake: () => void;
-  onPressCard?: () => void; // <-- Chạm vào để sửa/xóa
+  onPressCard?: () => void;
 }
 
 export const MedicineCard: React.FC<MedicineCardProps> = ({
@@ -18,21 +19,41 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
   dosage,
   intakeCount = 1,
   isTaken,
+  isFuture = false,
   takenAt,
   onToggleTake,
   onPressCard,
 }) => {
+  const handleFuturePress = () => {
+    Alert.alert(
+      'Upcoming Prescription',
+      'You cannot log medication for future dates in advance. Please wait until the scheduled day.',
+      [{ text: 'OK' }]
+    );
+  };
+
   return (
     <View style={styles.card}>
-      {/* CỘT TRÁI: Nhấn vào để mở popup SỬA / XÓA */}
+      {/* LEFT COLUMN: Press to open EDIT / DELETE modal */}
       <TouchableOpacity
         style={styles.leftCol}
         onPress={onPressCard}
         activeOpacity={0.7}
       >
-        <View style={[styles.statusIcon, isTaken ? styles.iconTaken : styles.iconPending]}>
+        <View
+          style={[
+            styles.statusIcon,
+            isTaken
+              ? styles.iconTaken
+              : isFuture
+              ? styles.iconFuture
+              : styles.iconPending,
+          ]}
+        >
           {isTaken ? (
             <Feather name="check" size={20} color="#FFFFFF" />
+          ) : isFuture ? (
+            <Feather name="clock" size={18} color={THEME.colors.royalBlue} />
           ) : (
             <Feather name="minus" size={20} color={THEME.light.textMuted} />
           )}
@@ -48,17 +69,29 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
             {dosage} • Take {intakeCount} pill{intakeCount > 1 ? 's' : ''}
           </Text>
 
+          {/* STATUS LABEL */}
           {isTaken ? (
             <Text style={styles.takenLabel}>Taken at {takenAt || 'scheduled time'}</Text>
+          ) : isFuture ? (
+            <Text style={styles.futureLabel}>Scheduled (Upcoming)</Text>
           ) : (
             <Text style={styles.notTakenLabel}>Not taken</Text>
           )}
         </View>
       </TouchableOpacity>
 
-      {/* CỘT PHẢI: Nút bấm Uống / Hủy */}
+      {/* RIGHT COLUMN: ACTION BUTTON (LOCKED IF FUTURE) */}
       <View style={styles.rightCol}>
-        {isTaken ? (
+        {isFuture ? (
+          <TouchableOpacity
+            style={styles.lockedBtn}
+            onPress={handleFuturePress}
+            activeOpacity={0.7}
+          >
+            <Feather name="lock" size={14} color={THEME.light.textMuted} style={{ marginRight: 4 }} />
+            <Text style={styles.lockedBtnText}>Locked</Text>
+          </TouchableOpacity>
+        ) : isTaken ? (
           <TouchableOpacity style={styles.unTakeBtn} onPress={onToggleTake} activeOpacity={0.7}>
             <Ionicons name="refresh" size={16} color={THEME.light.textSecondary} style={{ marginRight: 4 }} />
             <Text style={styles.unTakeText}>Un-take</Text>
@@ -105,6 +138,9 @@ const styles = StyleSheet.create({
   iconPending: {
     backgroundColor: '#E2E8F0',
   },
+  iconFuture: {
+    backgroundColor: THEME.colors.primaryLight,
+  },
   infoCol: {
     flex: 1,
   },
@@ -133,6 +169,12 @@ const styles = StyleSheet.create({
     fontSize: THEME.fontSizes.xs,
     fontWeight: '700',
     color: THEME.colors.statusNotTaken,
+    marginTop: 4,
+  },
+  futureLabel: {
+    fontSize: THEME.fontSizes.xs,
+    fontWeight: '700',
+    color: THEME.colors.royalBlue,
     marginTop: 4,
   },
   rightCol: {
@@ -164,6 +206,23 @@ const styles = StyleSheet.create({
   },
   unTakeText: {
     color: THEME.light.textSecondary,
+    fontSize: THEME.fontSizes.sm,
+    fontWeight: '700',
+  },
+  lockedBtn: {
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: THEME.light.borderLight,
+    opacity: 0.85,
+  },
+  lockedBtnText: {
+    color: THEME.light.textMuted,
     fontSize: THEME.fontSizes.sm,
     fontWeight: '700',
   },

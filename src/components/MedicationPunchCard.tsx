@@ -8,40 +8,52 @@ import {
 } from 'react-native';
 import { THEME } from '../constants/theme';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { generateDateRange, formatToISODate } from '../utils/dateUtils';
+import { formatToISODate } from '../utils/dateUtils';
 import { DailyLogItem } from '../database/logRepo';
 
 interface MedicationPunchCardProps {
   medicineName: string;
   dosage: string;
   time: string;
+  createdAt?: string;
   themeColor?: string;
   logs: DailyLogItem[];
   onToggleToday?: () => void;
 }
 
 const CELL_SIZE = 11;
-const CELL_GAP = 3;
-const WEEKS_COUNT = 20; // 20 rolling weeks (140 days punch matrix)
+const CELL_GAP = 3.5;
+const WEEKS_COUNT = 18; // 18 rolling calendar weeks
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 export const MedicationPunchCard: React.FC<MedicationPunchCardProps> = ({
   medicineName,
   dosage,
   time,
+  createdAt,
   themeColor = THEME.colors.primary,
   logs,
   onToggleToday,
 }) => {
   const scrollRef = useRef<ScrollView>(null);
 
-  // 1. Build matrix of 20 weeks x 7 days
+  // Accurately align with Monday -> Sunday calendar
   const { matrix, streak, complianceRate, takenCount, isTodayTaken } = useMemo(() => {
-    const todayStr = formatToISODate(new Date());
-    const totalDays = WEEKS_COUNT * 7;
-    const dates = generateDateRange(totalDays).reverse(); // Past -> Present
+    const today = new Date();
+    const todayStr = formatToISODate(today);
+    const startDate = createdAt ? createdAt.split('T')[0] : todayStr;
 
-    // Map logs of THIS medicine for fast lookup
+    // 1. Find Monday of current week
+    const currentDay = today.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+    const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
+    const currentMonday = new Date(today);
+    currentMonday.setDate(today.getDate() - daysFromMonday);
+
+    // 2. Go back 18 weeks (starting from Monday)
+    const startMonday = new Date(currentMonday);
+    startMonday.setDate(currentMonday.getDate() - (WEEKS_COUNT - 1) * 7);
+
+    // Map logs for this medication
     const medLogMap = new Map<string, boolean>();
     logs.forEach((l) => {
       if (l.name.toLowerCase() === medicineName.toLowerCase() && l.isTaken) {
@@ -49,48 +61,74 @@ export const MedicationPunchCard: React.FC<MedicationPunchCardProps> = ({
       }
     });
 
-    let currentStreak = 0;
     let totalTaken = 0;
+    let totalScheduledDays = 0;
 
-    // Check streak backwards from today
-    for (let i = dates.length - 1; i >= 0; i--) {
-      if (medLogMap.get(dates[i])) {
-        currentStreak++;
-      } else if (dates[i] < todayStr) {
-        break;
-      }
-    }
-
-    // Build 2D matrix (Columns = Weeks, Rows = 7 Days)
-    const columns: { date: string; taken: boolean; isToday: boolean }[][] = [];
+    // 3. Build matrix: Columns = Weeks, Rows = Day of week (0: Mon -> 6: Sun)
+    const columns = [];
     for (let w = 0; w < WEEKS_COUNT; w++) {
       const weekCol = [];
       for (let d = 0; d < 7; d++) {
-        const dateStr = dates[w * 7 + d];
+        const cellDate = new Date(startMonday);
+        cellDate.setDate(startMonday.getDate() + w * 7 + d);
+        const dateStr = formatToISODate(cellDate);
+
+        const isToday = dateStr === todayStr;
+        const isFuture = dateStr > todayStr;
+        const isBeforeStart = dateStr < startDate;
         const taken = !!medLogMap.get(dateStr);
-        if (taken) totalTaken++;
+
+        if (!isBeforeStart && !isFuture) {
+          totalScheduledDays++;
+          if (taken) totalTaken++;
+        }
+
         weekCol.push({
           date: dateStr,
           taken,
-          isToday: dateStr === todayStr,
+          isToday,
+          isFuture,
+          isBeforeStart,
+          dayIndex: d, // 0 = M, 1 = T, 2 = W, 3 = T, 4 = F, 5 = S, 6 = S
         });
       }
       columns.push(weekCol);
     }
 
-    const rate = Math.round((totalTaken / totalDays) * 100);
-    const todayTaken = !!medLogMap.get(todayStr);
+    // 4. Calculate streak backwards from today
+    let currentStreak = 0;
+    let checkDate = new Date(today);
+    while (true) {
+      const dStr = formatToISODate(checkDate);
+      if (dStr < startDate) break;
+
+      if (medLogMap.get(dStr)) {
+        currentStreak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        // If today is not yet taken, do not break yesterday's streak
+        if (dStr === todayStr) {
+          checkDate.setDate(checkDate.getDate() - 1);
+          continue;
+        }
+        break;
+      }
+    }
+
+    const rate =
+      totalScheduledDays > 0
+        ? Math.round((totalTaken / totalScheduledDays) * 100)
+        : 100;
 
     return {
       matrix: columns,
       streak: currentStreak,
       complianceRate: rate,
       takenCount: totalTaken,
-      isTodayTaken: todayTaken,
+      isTodayTaken: !!medLogMap.get(todayStr),
     };
-  }, [logs, medicineName]);
+  }, [logs, medicineName, createdAt]);
 
-  // Auto-scroll to latest week on right
   useEffect(() => {
     setTimeout(() => {
       scrollRef.current?.scrollToEnd({ animated: false });
@@ -99,7 +137,7 @@ export const MedicationPunchCard: React.FC<MedicationPunchCardProps> = ({
 
   return (
     <View style={[styles.card, { backgroundColor: themeColor }]}>
-      {/* 1. CARD TOP: Icon, Name, Dosage & Today Status Toggle */}
+      {/* HEADER */}
       <View style={styles.headerRow}>
         <View style={styles.iconBadge}>
           <MaterialCommunityIcons name="pill" size={22} color="#FFFFFF" />
@@ -114,7 +152,6 @@ export const MedicationPunchCard: React.FC<MedicationPunchCardProps> = ({
           </Text>
         </View>
 
-        {/* Checkmark Button for Today */}
         <TouchableOpacity
           style={[
             styles.todayCheckBtn,
@@ -131,9 +168,8 @@ export const MedicationPunchCard: React.FC<MedicationPunchCardProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* 2. PUNCH HOLE MATRIX GRID (7 ROWS x 20 COLUMNS) */}
+      {/* MATRIX GRID: ALIGNED M - T - W - T - F - S - S */}
       <View style={styles.gridWrapper}>
-        {/* Y-Axis day labels */}
         <View style={styles.yAxisLabels}>
           {WEEKDAYS.map((label, idx) => (
             <Text key={idx} style={styles.dayLabelText}>
@@ -142,7 +178,6 @@ export const MedicationPunchCard: React.FC<MedicationPunchCardProps> = ({
           ))}
         </View>
 
-        {/* Scrollable Punch Board */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -151,24 +186,28 @@ export const MedicationPunchCard: React.FC<MedicationPunchCardProps> = ({
         >
           {matrix.map((weekCol, wIdx) => (
             <View key={wIdx} style={styles.weekColumn}>
-              {weekCol.map((cell, dIdx) => (
-                <View
-                  key={dIdx}
-                  style={[
-                    styles.punchCell,
-                    cell.taken
-                      ? styles.punchCellFilled
-                      : styles.punchCellEmpty,
-                    cell.isToday && styles.punchCellToday,
-                  ]}
-                />
-              ))}
+              {weekCol.map((cell) => {
+                return (
+                  <View
+                    key={cell.date}
+                    style={[
+                      styles.punchCell,
+                      cell.taken
+                        ? styles.punchCellFilled           // Taken -> Bright white cell
+                        : cell.isBeforeStart || cell.isFuture
+                        ? styles.punchCellDisabled         // Not created or future -> Dim dark
+                        : styles.punchCellEmpty,           // Scheduled but not taken -> Medium dim
+                      cell.isToday && styles.punchCellToday,// Today -> Highlighted yellow border
+                    ]}
+                  />
+                );
+              })}
             </View>
           ))}
         </ScrollView>
       </View>
 
-      {/* 3. CARD FOOTER: STREAK & COMPLIANCE STATS */}
+      {/* FOOTER */}
       <View style={styles.footerRow}>
         <View style={styles.statItem}>
           <Ionicons name="flame" size={16} color="#FED7AA" />
@@ -264,7 +303,7 @@ const styles = StyleSheet.create({
   dayLabelText: {
     fontSize: 9,
     fontWeight: '800',
-    color: 'rgba(255, 255, 255, 0.65)',
+    color: 'rgba(255, 255, 255, 0.75)',
     lineHeight: CELL_SIZE,
     textAlign: 'center',
   },
@@ -282,7 +321,7 @@ const styles = StyleSheet.create({
     height: CELL_SIZE,
     borderRadius: 2.5,
   },
-  // Ô sáng bừng khi đã uống thuốc
+  // Taken -> Bright white highlight
   punchCellFilled: {
     backgroundColor: '#FFFFFF',
     shadowColor: '#FFFFFF',
@@ -290,11 +329,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.8,
     shadowRadius: 3,
   },
-  // Ô mờ khi chưa uống
+  // Scheduled in period but not taken
   punchCellEmpty: {
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
   },
-  // Viền nổi bật cho ngày hôm nay
+  // Prior to creation date or future date
+  punchCellDisabled: {
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+  },
+  // Today highlighted yellow border
   punchCellToday: {
     borderWidth: 1.5,
     borderColor: '#FDE047',

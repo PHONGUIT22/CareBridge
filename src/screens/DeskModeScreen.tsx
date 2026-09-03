@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,95 +6,125 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Alert,
+  Platform,
+  StatusBar,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { THEME } from '../constants/theme';
-import { useMedicines } from '../hooks/useMedicines';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { SeniorClock } from '../components/SeniorClock';
+import { LogRepo, DailyLogItem } from '../database/logRepo';
+import { formatToISODate } from '../utils/dateUtils';
+import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 export const DeskModeScreen: React.FC = () => {
-  const [currentTime, setCurrentTime] = useState<Date>(new Date());
-  const today = new Date();
-  const { logs, handleToggleTake } = useMedicines(today);
+  const [logs, setLogs] = useState<DailyLogItem[]>([]);
+  const todayStr = formatToISODate(new Date());
 
-  // Live timer tick every second
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const hours = currentTime.getHours().toString().padStart(2, '0');
-  const minutes = currentTime.getMinutes().toString().padStart(2, '0');
-  const seconds = currentTime.getSeconds().toString().padStart(2, '0');
-  const dateFormatted = currentTime.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  }).toUpperCase();
-
-  // Find the next upcoming pending dose
-  const nextPill = logs.find((item) => !item.isTaken);
-
-  const handleConfirmIntake = async () => {
-    if (nextPill) {
-      await handleToggleTake(nextPill.logId, nextPill.status);
-      Alert.alert('Confirmed', `${nextPill.name} marked as taken!`);
+  // Automatically reload today's doses whenever the tab is focused
+  const loadTodayLogs = useCallback(async () => {
+    try {
+      const data = await LogRepo.getLogsByDate(todayStr);
+      setLogs(data);
+    } catch (e) {
+      console.error(e);
     }
+  }, [todayStr]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadTodayLogs();
+    }, [loadTodayLogs])
+  );
+
+  // Calculate today's adherence progress
+  const totalToday = logs.length;
+  const takenToday = logs.filter((l) => l.isTaken).length;
+  const nextPendingPill = logs.find((l) => !l.isTaken);
+
+  const handleTakePill = async () => {
+    if (!nextPendingPill) return;
+
+    await LogRepo.toggleLogStatus(nextPendingPill.logId, nextPendingPill.status);
+    await loadTodayLogs();
+    Alert.alert('Prescription Logged', `Marked ${nextPendingPill.name} as taken!`);
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 1. TOP BAR: Mode indicator */}
+      {/* 1. TOP AMBIENT STATUS BAR */}
       <View style={styles.topBar}>
-        <View style={styles.liveIndicator}>
-          <View style={styles.liveDot} />
-          <Text style={styles.modeText}>DESK STAND MODE</Text>
+        <View style={styles.ambientBadge}>
+          <View style={styles.pulseDot} />
+          <Text style={styles.ambientText}>DESK STAND MODE</Text>
         </View>
-        <Ionicons name="moon" size={20} color="#94A3B8" />
+
+        <View style={styles.timeTag}>
+          <Ionicons name="moon" size={16} color="#38BDF8" style={{ marginRight: 4 }} />
+          <Text style={styles.timeTagText}>Nightstand</Text>
+        </View>
       </View>
 
-      {/* 2. CENTER: Giant Digital Clock */}
+      {/* 2. HERO GIANT CLOCK (Prominent focal point) */}
       <View style={styles.clockSection}>
-        <Text style={styles.giantClockText}>
-          {hours}:{minutes}
-          <Text style={styles.secondsText}>:{seconds}</Text>
-        </Text>
-        <Text style={styles.dateHeadline}>{dateFormatted}</Text>
+        <SeniorClock dark={true} />
       </View>
 
-      {/* 3. BOTTOM: Upcoming Medication Banner & Quick-Action Button */}
-      <View style={styles.bottomSection}>
-        <View style={styles.promptCard}>
-          <View style={styles.promptHeader}>
-            <Feather name="bell" size={18} color="#60A5FA" />
-            <Text style={styles.promptSubtitle}>UPCOMING DOSE</Text>
-          </View>
+      {/* 3. DAILY MEDICATION PROGRESS BAR */}
+      <View style={styles.progressCard}>
+        <View style={styles.progressHeader}>
+          <Text style={styles.progressLabel}>TODAY'S ADHERENCE</Text>
+          <Text style={styles.progressValue}>
+            {takenToday} / {totalToday} Doses
+          </Text>
+        </View>
 
-          {nextPill ? (
-            <View style={styles.medRow}>
-              <View style={styles.medInfo}>
-                <Text style={styles.medTime}>{nextPill.scheduledTime}</Text>
-                <Text style={styles.medName}>
-                  {nextPill.name} • {nextPill.dosage}
-                </Text>
+        <View style={styles.progressBarTrack}>
+          <View
+            style={[
+              styles.progressBarFill,
+              {
+                width: totalToday > 0 ? `${(takenToday / totalToday) * 100}%` : '100%',
+              },
+            ]}
+          />
+        </View>
+      </View>
+
+      {/* 4. BOTTOM INTERACTIVE ACTION SECTION */}
+      <View style={styles.bottomActionSection}>
+        {nextPendingPill ? (
+          <View style={styles.doseDueCard}>
+            <View style={styles.doseInfoRow}>
+              <View style={styles.pillIconBadge}>
+                <MaterialCommunityIcons name="pill" size={26} color="#FFFFFF" />
               </View>
 
-              <TouchableOpacity
-                style={styles.quickTakeButton}
-                onPress={handleConfirmIntake}
-                activeOpacity={0.8}
-              >
-                <Feather name="check" size={20} color="#FFFFFF" />
-                <Text style={styles.quickTakeText}>TAKE</Text>
-              </TouchableOpacity>
+              <View style={styles.doseDetails}>
+                <Text style={styles.doseDueSub}>UPCOMING DOSE AT {nextPendingPill.scheduledTime}</Text>
+                <Text style={styles.doseName}>{nextPendingPill.name}</Text>
+                <Text style={styles.doseStrength}>{nextPendingPill.dosage} • Take 1 pill</Text>
+              </View>
             </View>
-          ) : (
-            <View style={styles.allDoneRow}>
-              <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-              <Text style={styles.allDoneText}>All doses completed for today!</Text>
-            </View>
-          )}
-        </View>
+
+            {/* GIANT "I TOOK MY PILL" ACTION BUTTON */}
+            <TouchableOpacity
+              style={styles.giantTakeBtn}
+              onPress={handleTakePill}
+              activeOpacity={0.85}
+            >
+              <Feather name="check-circle" size={28} color="#FFFFFF" style={{ marginRight: 10 }} />
+              <Text style={styles.giantTakeBtnText}>I TOOK MY PILL</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.allCompletedCard}>
+            <Ionicons name="checkmark-done-circle" size={48} color="#10B981" />
+            <Text style={styles.allCompletedTitle}>All Doses Completed!</Text>
+            <Text style={styles.allCompletedSub}>
+              You have taken all scheduled medications for today. Rest well!
+            </Text>
+          </View>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -103,122 +133,183 @@ export const DeskModeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0F1D', // Deep midnight slate background
+    backgroundColor: '#070B14', // Deep dark background for eye comfort at night
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 28) + 4 : 12,
     justifyContent: 'space-between',
   },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
-  liveIndicator: {
+  ambientBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.3)',
   },
-  liveDot: {
+  pulseDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#10B981',
   },
-  modeText: {
-    fontSize: THEME.fontSizes.xs,
+  ambientText: {
+    fontSize: 11,
     fontWeight: '800',
+    color: '#38BDF8',
+    letterSpacing: 1.2,
+  },
+  timeTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timeTagText: {
+    fontSize: 12,
+    fontWeight: '700',
     color: '#94A3B8',
-    letterSpacing: 1.5,
   },
   clockSection: {
-    alignItems: 'center',
+    flex: 1,
     justifyContent: 'center',
-    paddingVertical: 20,
-  },
-  giantClockText: {
-    fontSize: 68,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 2,
-    fontVariant: ['tabular-nums'],
-  },
-  secondsText: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  dateHeadline: {
-    fontSize: THEME.fontSizes.md,
-    fontWeight: '700',
-    color: '#60A5FA',
-    marginTop: 8,
-    letterSpacing: 1.2,
-  },
-  bottomSection: {
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-  },
-  promptCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1.5,
-    borderColor: '#334155',
-  },
-  promptHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    paddingVertical: 10,
+  },
+  progressCard: {
+    backgroundColor: 'rgba(30, 41, 59, 0.65)',
+    marginHorizontal: 20,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: '#1E293B',
+    marginBottom: 16,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 10,
   },
-  promptSubtitle: {
-    fontSize: 12,
+  progressLabel: {
+    fontSize: 11,
     fontWeight: '800',
-    color: '#60A5FA',
+    color: '#94A3B8',
     letterSpacing: 1.2,
   },
-  medRow: {
+  progressValue: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#38BDF8',
+  },
+  progressBarTrack: {
+    height: 8,
+    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#10B981',
+    borderRadius: 4,
+  },
+  bottomActionSection: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+  },
+  doseDueCard: {
+    backgroundColor: '#111827',
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 2,
+    borderColor: '#1E3A8A',
+    shadowColor: '#1E3A8A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  doseInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    marginBottom: 18,
   },
-  medInfo: {
+  pillIconBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: THEME.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  doseDetails: {
     flex: 1,
   },
-  medTime: {
-    fontSize: 22,
+  doseDueSub: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#F59E0B',
+    letterSpacing: 1.2,
+  },
+  doseName: {
+    fontSize: 20,
     fontWeight: '900',
     color: '#FFFFFF',
+    marginTop: 2,
   },
-  medName: {
-    fontSize: THEME.fontSizes.md,
+  doseStrength: {
+    fontSize: 13,
     fontWeight: '600',
     color: '#94A3B8',
     marginTop: 2,
   },
-  quickTakeButton: {
+  giantTakeBtn: {
     backgroundColor: '#10B981',
+    height: 64,
+    borderRadius: 18,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 14,
+    justifyContent: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+    elevation: 6,
   },
-  quickTakeText: {
+  giantTakeBtnText: {
+    fontSize: 18,
+    fontWeight: '900',
     color: '#FFFFFF',
-    fontSize: THEME.fontSizes.md,
-    fontWeight: '800',
+    letterSpacing: 0.5,
   },
-  allDoneRow: {
-    flexDirection: 'row',
+  allCompletedCard: {
+    backgroundColor: 'rgba(30, 41, 59, 0.6)',
+    borderRadius: 24,
+    padding: 24,
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 6,
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#1E293B',
   },
-  allDoneText: {
-    fontSize: THEME.fontSizes.md,
-    fontWeight: '700',
-    color: '#E2E8F0',
+  allCompletedTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginTop: 8,
+  },
+  allCompletedSub: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#94A3B8',
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 18,
   },
 });

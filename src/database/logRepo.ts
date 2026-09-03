@@ -14,6 +14,7 @@ export interface DailyLogItem {
   isTaken: boolean;
   takenAt?: string;
   imageUri?: string;
+  stockCount?: number;
 }
 
 const DAY_MAP: Record<number, string> = {
@@ -94,6 +95,7 @@ export const LogRepo = {
         m.name as name,
         m.dosage as dosage,
         m.image_uri as imageUri,
+        COALESCE(m.stock_count, 30) as stockCount,
         l.time as scheduledTime,
         l.date as date,
         l.status as status,
@@ -110,6 +112,7 @@ export const LogRepo = {
       name: string;
       dosage: string;
       imageUri: string | null;
+      stockCount: number;
       scheduledTime: string;
       date: string;
       status: LogStatus;
@@ -122,6 +125,7 @@ export const LogRepo = {
       name: r.name,
       dosage: r.dosage,
       imageUri: r.imageUri || undefined,
+      stockCount: r.stockCount ?? 30,
       scheduledTime: r.scheduledTime,
       date: r.date,
       status: r.status,
@@ -164,6 +168,7 @@ export const LogRepo = {
         m.name as name,
         m.dosage as dosage,
         m.image_uri as imageUri,
+        COALESCE(m.stock_count, 30) as stockCount,
         l.time as scheduledTime,
         l.date as date,
         l.status as status,
@@ -180,6 +185,7 @@ export const LogRepo = {
       name: string;
       dosage: string;
       imageUri: string | null;
+      stockCount: number;
       scheduledTime: string;
       date: string;
       status: LogStatus;
@@ -192,6 +198,7 @@ export const LogRepo = {
       name: r.name,
       dosage: r.dosage,
       imageUri: r.imageUri || undefined,
+      stockCount: r.stockCount ?? 30,
       scheduledTime: r.scheduledTime,
       date: r.date,
       status: r.status,

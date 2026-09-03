@@ -10,6 +10,7 @@ export interface Medicine {
   daysOfWeek: DayCode[];   // e.g. ["MON", "WED", "FRI"] or ["ALL"]
   createdAt: string;
   imageUri?: string;
+  stockCount?: number;
 }
 
 export interface IntakeLog {
@@ -33,6 +34,7 @@ export interface DailyLogItem {
   isTaken: boolean;
   takenAt?: string;
   imageUri?: string;
+  stockCount?: number;
 }
 
 export interface TimeGroup {

@@ -8,7 +8,8 @@ interface RewardedAdModalProps {
   visible: boolean;
   onAdCompleted: () => void;
   onClose: () => void;
-  placement: 'export_pdf' | 'add_prescription';
+  placement: 'export_pdf' | 'add_prescription' | 'refill_stock';
+  medicineName?: string;
 }
 
 export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
@@ -16,6 +17,7 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
   onAdCompleted,
   onClose,
   placement,
+  medicineName,
 }) => {
   const [countdown, setCountdown] = useState(3);
   const [canSkip, setCanSkip] = useState(false);
@@ -27,13 +29,13 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
       return;
     }
 
-    // Đếm ngược 3 giây
+    // 3-second countdown timer
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
           setCanSkip(true);
-          // Tự động bắn doanh thu quảng cáo về RevenueCat Dashboard
+          // Automatically attribute ad revenue to RevenueCat dashboard
           RevenueCatService.trackAdImpression('AdMob_Rewarded', placement, 0.05);
           return 0;
         }
@@ -74,7 +76,13 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
             onPress={handleClaim}
           >
             {canSkip ? (
-              <Text style={styles.claimBtnText}>CONTINUE TO {placement === 'export_pdf' ? 'EXPORT PDF' : 'ADD MEDICINE'}</Text>
+              <Text style={styles.claimBtnText}>
+                {placement === 'refill_stock'
+                  ? `NHẬN +30 VIÊN ${medicineName ? medicineName.toUpperCase() : 'THUỐC'}`
+                  : placement === 'export_pdf'
+                  ? 'XUẤT BÁO CÁO PDF'
+                  : 'THÊM ĐƠN THUỐC'}
+              </Text>
             ) : (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <ActivityIndicator size="small" color="#FFFFFF" />

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
 import { THEME } from '../constants/theme';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface MedicineCardProps {
   name: string;
@@ -11,6 +11,8 @@ interface MedicineCardProps {
   isFuture?: boolean; // <-- Lock if date is in the future
   takenAt?: string;
   imageUri?: string;
+  stockCount?: number;
+  onRefill?: () => void;
   onToggleTake: () => void;
   onPressCard?: () => void;
 }
@@ -23,6 +25,8 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
   isFuture = false,
   takenAt,
   imageUri,
+  stockCount,
+  onRefill,
   onToggleTake,
   onPressCard,
 }) => {
@@ -75,6 +79,29 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
         <View style={styles.infoCol}>
           <View style={styles.titleRow}>
             <Text style={styles.medName}>{name}</Text>
+            {/* Stock inventory count badge */}
+            <TouchableOpacity
+              style={[
+                styles.stockBadge,
+                (stockCount ?? 30) <= 5 ? styles.stockBadgeLow : styles.stockBadgeNormal,
+              ]}
+              onPress={onRefill}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons
+                name="pill"
+                size={12}
+                color={(stockCount ?? 30) <= 5 ? '#DC2626' : THEME.colors.primary}
+              />
+              <Text
+                style={[
+                  styles.stockText,
+                  (stockCount ?? 30) <= 5 ? styles.stockTextLow : styles.stockTextNormal,
+                ]}
+              >
+                {(stockCount ?? 30) <= 5 ? `Còn ${stockCount ?? 0}v (Refill)` : `${stockCount ?? 30} viên`}
+              </Text>
+            </TouchableOpacity>
             <Feather name="edit-2" size={14} color={THEME.light.textMuted} style={{ marginLeft: 6 }} />
           </View>
 
@@ -262,5 +289,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: '#FFFFFF',
+  },
+  stockBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  stockBadgeNormal: {
+    backgroundColor: THEME.colors.primaryLight,
+    borderWidth: 1,
+    borderColor: THEME.light.border,
+  },
+  stockBadgeLow: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  stockText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  stockTextNormal: {
+    color: THEME.colors.primary,
+  },
+  stockTextLow: {
+    color: '#DC2626',
+    fontWeight: '800',
   },
 });

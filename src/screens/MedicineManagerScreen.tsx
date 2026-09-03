@@ -66,6 +66,8 @@ export const MedicineManagerScreen: React.FC = () => {
   // Modal State
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isAdVisible, setIsAdVisible] = useState(false);
+  const [adPlacement, setAdPlacement] = useState<'add_prescription' | 'refill_stock'>('add_prescription');
+  const [refillTarget, setRefillTarget] = useState<{ id: string; name: string } | null>(null);
   const [editingMedId, setEditingMedId] = useState<string | null>(null);
   const [selectedMedName, setSelectedMedName] = useState(PRESET_MEDICINES[0].name);
   const [selectedDose, setSelectedDose] = useState('1 Tablet');
@@ -101,7 +103,26 @@ export const MedicineManagerScreen: React.FC = () => {
   });
 
   const openAddModal = () => {
+    setAdPlacement('add_prescription');
+    setRefillTarget(null);
     setIsAdVisible(true);
+  };
+
+  const handleRefillPress = (medicineId: string, name: string) => {
+    setRefillTarget({ id: medicineId, name });
+    setAdPlacement('refill_stock');
+    setIsAdVisible(true);
+  };
+
+  const handleAdCompleted = async () => {
+    if (adPlacement === 'refill_stock' && refillTarget) {
+      await MedicineRepo.refillMedicine(refillTarget.id, 30);
+      await refresh();
+      Alert.alert('Refilled!', `Successfully added 30 pills for "${refillTarget.name}".`);
+      setRefillTarget(null);
+    } else {
+      showAddFormAfterAd();
+    }
   };
 
   const showAddFormAfterAd = () => {
@@ -303,6 +324,8 @@ export const MedicineManagerScreen: React.FC = () => {
                       name={item.name}
                       dosage={item.dosage}
                       imageUri={item.imageUri}
+                      stockCount={item.stockCount}
+                      onRefill={() => handleRefillPress(item.medicineId, item.name)}
                       intakeCount={1}
                       isTaken={item.isTaken}
                       isFuture={isFutureDate}
@@ -509,9 +532,10 @@ export const MedicineManagerScreen: React.FC = () => {
       {/* 5. REWARDED AD MODAL */}
       <RewardedAdModal
         visible={isAdVisible}
-        placement="add_prescription"
+        placement={adPlacement}
+        medicineName={refillTarget?.name}
         onClose={() => setIsAdVisible(false)}
-        onAdCompleted={showAddFormAfterAd}
+        onAdCompleted={handleAdCompleted}
       />
     </SafeAreaView>
   );

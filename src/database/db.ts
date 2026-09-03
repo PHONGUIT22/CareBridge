@@ -19,6 +19,7 @@ export async function initDB(): Promise<SQLite.SQLiteDatabase> {
       reminder_times TEXT NOT NULL,
       days_of_week TEXT NOT NULL,
       image_uri TEXT,
+      stock_count INTEGER DEFAULT 30,
       created_at TEXT NOT NULL
     );
 
@@ -40,6 +41,13 @@ export async function initDB(): Promise<SQLite.SQLiteDatabase> {
   // Automatically add column if existing database does not have image_uri yet
   try {
     await dbInstance.execAsync(`ALTER TABLE medicines ADD COLUMN image_uri TEXT;`);
+  } catch (e) {
+    // Column already exists, safe to ignore
+  }
+
+  // Automatically add column if existing database does not have stock_count yet
+  try {
+    await dbInstance.execAsync(`ALTER TABLE medicines ADD COLUMN stock_count INTEGER DEFAULT 30;`);
   } catch (e) {
     // Column already exists, safe to ignore
   }

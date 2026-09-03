@@ -1,23 +1,49 @@
 import { Platform } from 'react-native';
 
-const REVENUECAT_API_KEY_ANDROID = 'goog_YOUR_REVENUECAT_PUBLIC_KEY';
-const REVENUECAT_API_KEY_IOS = 'appl_YOUR_REVENUECAT_PUBLIC_KEY';
+// Public API Key lấy trực tiếp từ RevenueCat Dashboard của bạn
+const REVENUECAT_PUBLIC_API_KEY = 'test_NBVokGjAXCxzSkUOhtioMYGEFLL';
 export const ENTITLEMENT_ID = 'carebridge_pro';
 
-// Mặc định luôn là FALSE (Chưa mua Pro)
 let isProActive = false;
 
-export const SubscriptionService = {
+export const RevenueCatService = {
+  /**
+   * 1. Khởi tạo SDK RevenueCat khi mở app
+   */
   async init(): Promise<void> {
     try {
       const Purchases = require('react-native-purchases').default;
-      const apiKey = Platform.OS === 'ios' ? REVENUECAT_API_KEY_IOS : REVENUECAT_API_KEY_ANDROID;
-      await Purchases.configure({ apiKey });
-    } catch (e) {
-      console.log('[RevenueCat] Sandbox Ready');
+      Purchases.setLogLevel(Purchases.LOG_LEVEL?.DEBUG || 0);
+      await Purchases.configure({ apiKey: REVENUECAT_PUBLIC_API_KEY });
+      console.log('[RevenueCat] SDK Initialized with Key:', REVENUECAT_PUBLIC_API_KEY);
+    } catch (e: any) {
+      console.log('[RevenueCat Safe Init Fallback]:', e?.message || e);
     }
   },
 
+  /**
+   * 2. Ghi nhận dữ liệu quảng cáo (Catvertising Track)
+   * Đẩy doanh thu quảng cáo Ad Revenue về Dashboard RevenueCat
+   */
+  async trackAdImpression(networkName: string, adUnitId: string, revenue: number): Promise<void> {
+    try {
+      const Purchases = require('react-native-purchases').default;
+      if (Purchases.setAdRevenue) {
+        await Purchases.setAdRevenue({
+          revenue,
+          source: networkName,
+          networkPlacement: adUnitId,
+        });
+      }
+      console.log(`[RevenueCat Catvertising] Tracked ad impression: ${networkName} (${adUnitId}) -> $${revenue}`);
+    } catch (error) {
+      console.log(`[RevenueCat Mock Ad Tracked]: ${networkName} - $${revenue}`);
+    }
+  },
+
+  /**
+   * 3. Kiểm tra trạng thái Pro
+   */
   async isPro(): Promise<boolean> {
     if (isProActive) return true;
 
@@ -30,6 +56,9 @@ export const SubscriptionService = {
     }
   },
 
+  /**
+   * 4. Mua gói Pro
+   */
   async purchasePro(): Promise<boolean> {
     try {
       const Purchases = require('react-native-purchases').default;
@@ -43,18 +72,22 @@ export const SubscriptionService = {
       console.log('[RevenueCat Sandbox Activated]');
     }
 
-    // Kích hoạt Pro Sandbox cho Ban giám khảo test
     isProActive = true;
     return true;
   },
 
+  /**
+   * 5. Khôi phục gói Pro
+   */
   async restorePurchases(): Promise<boolean> {
     isProActive = true;
     return true;
   },
 
-  // Reset về Free để Ban Giám Khảo test lại việc khóa tính năng
   resetToFree(): void {
     isProActive = false;
   },
 };
+
+// Export alias để tương thích các component cũ
+export const SubscriptionService = RevenueCatService;

@@ -20,6 +20,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { PaywallModal } from '../components/PaywallModal';
 import { SubscriptionService } from '../services/revenuecat';
 import { PdfService } from '../services/pdfService';
+import { SponsoredHealthBanner } from '../components/SponsoredHealthBanner';
 
 const CARD_PALETTES = [
   '#EA580C', // Orange
@@ -162,6 +163,9 @@ export const HistoryScreen: React.FC = () => {
             );
           })
         )}
+
+        {/* BANNER TÀI TRỢ DOANH THU REVENUECAT ADS (Catvertising) */}
+        <SponsoredHealthBanner placement="history_footer" />
       </ScrollView>
 
       {/* 3. REVENUECAT PAYWALL MODAL */}

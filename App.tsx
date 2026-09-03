@@ -6,6 +6,7 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { initDB } from './src/database/db';
 import { THEME } from './src/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { RevenueCatService } from './src/services/revenuecat';
 
 export default function App() {
   const [isDbReady, setIsDbReady] = useState<boolean>(false);
@@ -14,7 +15,10 @@ export default function App() {
   useEffect(() => {
     async function bootstrapDatabase() {
       try {
-        await initDB();
+        await Promise.all([
+          initDB(),
+          RevenueCatService.init(), // <-- Khởi động RevenueCat ngay khi mở app
+        ]);
         setIsDbReady(true);
       } catch (error) {
         console.error('Database bootstrap error:', error);

@@ -15,6 +15,7 @@ import { SeniorClock } from '../components/SeniorClock';
 import { LogRepo, DailyLogItem } from '../database/logRepo';
 import { formatToISODate } from '../utils/dateUtils';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { SponsoredHealthBanner } from '../components/SponsoredHealthBanner';
 
 export const DeskModeScreen: React.FC = () => {
   const [logs, setLogs] = useState<DailyLogItem[]>([]);
@@ -123,6 +124,11 @@ export const DeskModeScreen: React.FC = () => {
             <Text style={styles.allCompletedSub}>
               You have taken all scheduled medications for today. Rest well!
             </Text>
+
+            {/* GỢI Ý BÀI TẬP THỞ SỨC KHỎE TÀI TRỢ */}
+            <View style={{ width: '100%', marginTop: 10 }}>
+              <SponsoredHealthBanner placement="desk_completed" />
+            </View>
           </View>
         )}
       </View>

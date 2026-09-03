@@ -9,6 +9,7 @@ export interface Medicine {
   reminderTimes: string[]; // e.g. ["09:00", "12:00", "20:00"]
   daysOfWeek: DayCode[];   // e.g. ["MON", "WED", "FRI"] or ["ALL"]
   createdAt: string;
+  imageUri?: string;
 }
 
 export interface IntakeLog {
@@ -31,6 +32,7 @@ export interface DailyLogItem {
   status: LogStatus;
   isTaken: boolean;
   takenAt?: string;
+  imageUri?: string;
 }
 
 export interface TimeGroup {

@@ -12,7 +12,9 @@ import {
   StatusBar,
   Alert,
   useWindowDimensions,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from '@react-navigation/native';
 import { THEME } from '../constants/theme';
@@ -49,10 +51,10 @@ export const MedicineManagerScreen: React.FC = () => {
   const isFutureDate = selectedDateStr > todayStr;
 
   const { width } = useWindowDimensions();
-  const isUnfoldedFold = width >= 600; // Màn hình tablet hoặc Z Fold mở toang
+  const isUnfoldedFold = width >= 600; // Large screen or unfolded Z Fold
 
   const onToggleTakeWithHaptic = (logId: string, status: any) => {
-    // Rung phản hồi vật lý kiểu Samsung
+    // Physical haptic feedback
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     handleToggleTake(logId, status);
   };
@@ -69,6 +71,7 @@ export const MedicineManagerScreen: React.FC = () => {
   const [selectedDose, setSelectedDose] = useState('1 Tablet');
   const [selectedTime, setSelectedTime] = useState('08:00');
   const [selectedDays, setSelectedDays] = useState<string[]>(['ALL']);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const updateSubscriptionState = useCallback(async () => {
     const proStatus = await SubscriptionService.isPro();
@@ -98,7 +101,7 @@ export const MedicineManagerScreen: React.FC = () => {
   });
 
   const openAddModal = () => {
-    setIsAdVisible(true); // Bấm thêm thuốc thì bật Ads lên ngay
+    setIsAdVisible(true);
   };
 
   const showAddFormAfterAd = () => {
@@ -107,16 +110,66 @@ export const MedicineManagerScreen: React.FC = () => {
     setSelectedDose('1 Tablet');
     setSelectedTime('08:00');
     setSelectedDays(['ALL']);
+    setSelectedImage(null);
     setIsModalVisible(true);
   };
 
-  const openEditModal = (medicineId: string, name: string, dosage: string, time: string) => {
+  const openEditModal = (
+    medicineId: string,
+    name: string,
+    dosage: string,
+    time: string,
+    imageUri?: string
+  ) => {
     setEditingMedId(medicineId);
     setSelectedMedName(name);
     setSelectedDose(dosage);
     setSelectedTime(time);
     setSelectedDays(['ALL']);
+    setSelectedImage(imageUri || null);
     setIsModalVisible(true);
+  };
+
+  const handlePickImage = () => {
+    Alert.alert(
+      'Pill Photo (Visual ID)',
+      'Take a photo of your actual pill so seniors can identify it easily.',
+      [
+        {
+          text: 'Take Photo',
+          onPress: async () => {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+              Alert.alert('Permission needed', 'Camera access is required.');
+              return;
+            }
+            const result = await ImagePicker.launchCameraAsync({
+              allowsEditing: true,
+              aspect: [1, 1],
+              quality: 0.6,
+            });
+            if (!result.canceled && result.assets[0]?.uri) {
+              setSelectedImage(result.assets[0].uri);
+            }
+          },
+        },
+        {
+          text: 'Choose from Gallery',
+          onPress: async () => {
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ['images'],
+              allowsEditing: true,
+              aspect: [1, 1],
+              quality: 0.6,
+            });
+            if (!result.canceled && result.assets[0]?.uri) {
+              setSelectedImage(result.assets[0].uri);
+            }
+          },
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
   };
 
   const toggleDay = (day: string) => {
@@ -142,6 +195,7 @@ export const MedicineManagerScreen: React.FC = () => {
           dosage: selectedDose,
           reminderTimes: [selectedTime],
           daysOfWeek: selectedDays,
+          imageUri: selectedImage,
         });
         Alert.alert('Updated', `Prescription "${selectedMedName}" updated!`);
       } else {
@@ -150,6 +204,7 @@ export const MedicineManagerScreen: React.FC = () => {
           dosage: selectedDose,
           reminderTimes: [selectedTime],
           daysOfWeek: selectedDays,
+          imageUri: selectedImage,
         });
         Alert.alert('Prescription Saved', `Added ${selectedMedName} at ${selectedTime}`);
       }
@@ -247,6 +302,7 @@ export const MedicineManagerScreen: React.FC = () => {
                       key={item.logId}
                       name={item.name}
                       dosage={item.dosage}
+                      imageUri={item.imageUri}
                       intakeCount={1}
                       isTaken={item.isTaken}
                       isFuture={isFutureDate}
@@ -259,7 +315,13 @@ export const MedicineManagerScreen: React.FC = () => {
                         onToggleTakeWithHaptic(item.logId, item.status);
                       }}
                       onPressCard={() =>
-                        openEditModal(item.medicineId, item.name, item.dosage, item.scheduledTime)
+                        openEditModal(
+                          item.medicineId,
+                          item.name,
+                          item.dosage,
+                          item.scheduledTime,
+                          item.imageUri
+                        )
                       }
                     />
                   ))}
@@ -354,6 +416,27 @@ export const MedicineManagerScreen: React.FC = () => {
                     </TouchableOpacity>
                   );
                 })}
+              </View>
+
+              <Text style={styles.sectionLabel}>PILL PHOTO (FOR VISUAL RECOGNITION)</Text>
+              <View style={styles.photoPickerRow}>
+                <TouchableOpacity style={styles.photoPickerBtn} onPress={handlePickImage} activeOpacity={0.8}>
+                  {selectedImage ? (
+                    <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+                  ) : (
+                    <View style={styles.placeholderBox}>
+                      <Feather name="camera" size={26} color={THEME.colors.primary} />
+                      <Text style={styles.photoPickerText}>Snap Real Pill</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                {selectedImage && (
+                  <TouchableOpacity style={styles.removePhotoBtn} onPress={() => setSelectedImage(null)}>
+                    <Feather name="trash-2" size={16} color={THEME.colors.statusSkipped} />
+                    <Text style={styles.removePhotoText}>Remove Photo</Text>
+                  </TouchableOpacity>
+                )}
               </View>
 
               <Text style={styles.sectionLabel}>3. TIME TO TAKE</Text>
@@ -736,5 +819,49 @@ const styles = StyleSheet.create({
     color: THEME.colors.royalBlue,
     letterSpacing: 1.2,
     marginBottom: 8,
+  },
+  photoPickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginVertical: 6,
+  },
+  photoPickerBtn: {
+    width: 80,
+    height: 80,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: THEME.colors.primary,
+    borderStyle: 'dashed',
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: THEME.colors.primaryLight,
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  placeholderBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoPickerText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: THEME.colors.primary,
+    marginTop: 4,
+  },
+  removePhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    padding: 8,
+  },
+  removePhotoText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: THEME.colors.statusSkipped,
   },
 });

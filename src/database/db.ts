@@ -18,6 +18,7 @@ export async function initDB(): Promise<SQLite.SQLiteDatabase> {
       dosage TEXT NOT NULL,
       reminder_times TEXT NOT NULL,
       days_of_week TEXT NOT NULL,
+      image_uri TEXT,
       created_at TEXT NOT NULL
     );
 
@@ -35,6 +36,13 @@ export async function initDB(): Promise<SQLite.SQLiteDatabase> {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_log_unique ON intake_logs(medicine_id, date, time);
     CREATE INDEX IF NOT EXISTS idx_log_date ON intake_logs(date);
   `);
+
+  // Automatically add column if existing database does not have image_uri yet
+  try {
+    await dbInstance.execAsync(`ALTER TABLE medicines ADD COLUMN image_uri TEXT;`);
+  } catch (e) {
+    // Column already exists, safe to ignore
+  }
 
   return dbInstance;
 }

@@ -13,6 +13,7 @@ export interface DailyLogItem {
   status: LogStatus;
   isTaken: boolean;
   takenAt?: string;
+  imageUri?: string;
 }
 
 const DAY_MAP: Record<number, string> = {
@@ -92,6 +93,7 @@ export const LogRepo = {
         m.id as medicineId,
         m.name as name,
         m.dosage as dosage,
+        m.image_uri as imageUri,
         l.time as scheduledTime,
         l.date as date,
         l.status as status,
@@ -107,6 +109,7 @@ export const LogRepo = {
       medicineId: string;
       name: string;
       dosage: string;
+      imageUri: string | null;
       scheduledTime: string;
       date: string;
       status: LogStatus;
@@ -118,6 +121,7 @@ export const LogRepo = {
       medicineId: r.medicineId,
       name: r.name,
       dosage: r.dosage,
+      imageUri: r.imageUri || undefined,
       scheduledTime: r.scheduledTime,
       date: r.date,
       status: r.status,
@@ -159,6 +163,7 @@ export const LogRepo = {
         m.id as medicineId,
         m.name as name,
         m.dosage as dosage,
+        m.image_uri as imageUri,
         l.time as scheduledTime,
         l.date as date,
         l.status as status,
@@ -174,6 +179,7 @@ export const LogRepo = {
       medicineId: string;
       name: string;
       dosage: string;
+      imageUri: string | null;
       scheduledTime: string;
       date: string;
       status: LogStatus;
@@ -185,6 +191,7 @@ export const LogRepo = {
       medicineId: r.medicineId,
       name: r.name,
       dosage: r.dosage,
+      imageUri: r.imageUri || undefined,
       scheduledTime: r.scheduledTime,
       date: r.date,
       status: r.status,

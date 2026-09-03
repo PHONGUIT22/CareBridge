@@ -8,6 +8,7 @@ import {
   Alert,
   Platform,
   StatusBar,
+  Image,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { THEME } from '../constants/theme';
@@ -15,7 +16,9 @@ import { SeniorClock } from '../components/SeniorClock';
 import { LogRepo, DailyLogItem } from '../database/logRepo';
 import { formatToISODate } from '../utils/dateUtils';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Speech from 'expo-speech';
 import { SponsoredHealthBanner } from '../components/SponsoredHealthBanner';
+import { announceMedication } from '../services/speechService';
 
 export const DeskModeScreen: React.FC = () => {
   const [logs, setLogs] = useState<DailyLogItem[]>([]);
@@ -34,6 +37,9 @@ export const DeskModeScreen: React.FC = () => {
   useFocusEffect(
     useCallback(() => {
       loadTodayLogs();
+      return () => {
+        Speech.stop();
+      };
     }, [loadTodayLogs])
   );
 
@@ -41,6 +47,19 @@ export const DeskModeScreen: React.FC = () => {
   const totalToday = logs.length;
   const takenToday = logs.filter((l) => l.isTaken).length;
   const nextPendingPill = logs.find((l) => !l.isTaken);
+
+  // Automatically announce upcoming medication when in desk stand mode
+  useEffect(() => {
+    if (nextPendingPill) {
+      const message = `Time for medication: ${nextPendingPill.name}, ${nextPendingPill.dosage}.`;
+      Speech.speak(message, { language: 'en-US', rate: 0.85 });
+    }
+
+    // Stop speech playback when leaving screen or when medication changes
+    return () => {
+      Speech.stop();
+    };
+  }, [nextPendingPill?.name, nextPendingPill?.dosage]);
 
   const handleTakePill = async () => {
     if (!nextPendingPill) return;
@@ -96,15 +115,28 @@ export const DeskModeScreen: React.FC = () => {
         {nextPendingPill ? (
           <View style={styles.doseDueCard}>
             <View style={styles.doseInfoRow}>
-              <View style={styles.pillIconBadge}>
-                <MaterialCommunityIcons name="pill" size={26} color="#FFFFFF" />
-              </View>
+              {nextPendingPill.imageUri ? (
+                <Image source={{ uri: nextPendingPill.imageUri }} style={styles.giantPillImage} />
+              ) : (
+                <View style={styles.pillIconBadge}>
+                  <MaterialCommunityIcons name="pill" size={26} color="#FFFFFF" />
+                </View>
+              )}
 
               <View style={styles.doseDetails}>
                 <Text style={styles.doseDueSub}>UPCOMING DOSE AT {nextPendingPill.scheduledTime}</Text>
                 <Text style={styles.doseName}>{nextPendingPill.name}</Text>
                 <Text style={styles.doseStrength}>{nextPendingPill.dosage} • Take 1 pill</Text>
               </View>
+
+              {/* Accessibility speaker button to read medication out loud */}
+              <TouchableOpacity
+                style={styles.speakerBtn}
+                onPress={() => announceMedication(nextPendingPill.name, nextPendingPill.dosage)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="volume-high" size={24} color="#38BDF8" />
+              </TouchableOpacity>
             </View>
 
             {/* GIANT "I TOOK MY PILL" ACTION BUTTON */}
@@ -246,6 +278,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 18,
   },
+  giantPillImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    marginRight: 14,
+    borderWidth: 2,
+    borderColor: '#38BDF8',
+  },
   pillIconBadge: {
     width: 48,
     height: 48,
@@ -275,6 +315,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#94A3B8',
     marginTop: 2,
+  },
+  speakerBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    borderWidth: 1,
+    borderColor: '#38BDF8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
   },
   giantTakeBtn: {
     backgroundColor: '#10B981',

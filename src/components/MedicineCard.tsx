@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
 import { THEME } from '../constants/theme';
 import { Feather, Ionicons } from '@expo/vector-icons';
 
@@ -10,6 +10,7 @@ interface MedicineCardProps {
   isTaken: boolean;
   isFuture?: boolean; // <-- Lock if date is in the future
   takenAt?: string;
+  imageUri?: string;
   onToggleTake: () => void;
   onPressCard?: () => void;
 }
@@ -21,6 +22,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
   isTaken,
   isFuture = false,
   takenAt,
+  imageUri,
   onToggleTake,
   onPressCard,
 }) => {
@@ -40,24 +42,35 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
         onPress={onPressCard}
         activeOpacity={0.7}
       >
-        <View
-          style={[
-            styles.statusIcon,
-            isTaken
-              ? styles.iconTaken
-              : isFuture
-              ? styles.iconFuture
-              : styles.iconPending,
-          ]}
-        >
-          {isTaken ? (
-            <Feather name="check" size={20} color="#FFFFFF" />
-          ) : isFuture ? (
-            <Feather name="clock" size={18} color={THEME.colors.royalBlue} />
-          ) : (
-            <Feather name="minus" size={20} color={THEME.light.textMuted} />
-          )}
-        </View>
+        {imageUri ? (
+          <View style={styles.imageThumbnailWrapper}>
+            <Image source={{ uri: imageUri }} style={styles.pillThumb} />
+            {isTaken && (
+              <View style={styles.takenBadgeOverlay}>
+                <Feather name="check" size={14} color="#FFFFFF" />
+              </View>
+            )}
+          </View>
+        ) : (
+          <View
+            style={[
+              styles.statusIcon,
+              isTaken
+                ? styles.iconTaken
+                : isFuture
+                ? styles.iconFuture
+                : styles.iconPending,
+            ]}
+          >
+            {isTaken ? (
+              <Feather name="check" size={20} color="#FFFFFF" />
+            ) : isFuture ? (
+              <Feather name="clock" size={18} color={THEME.colors.royalBlue} />
+            ) : (
+              <Feather name="minus" size={20} color={THEME.light.textMuted} />
+            )}
+          </View>
+        )}
 
         <View style={styles.infoCol}>
           <View style={styles.titleRow}>
@@ -225,5 +238,29 @@ const styles = StyleSheet.create({
     color: THEME.light.textMuted,
     fontSize: THEME.fontSizes.sm,
     fontWeight: '700',
+  },
+  imageThumbnailWrapper: {
+    position: 'relative',
+    marginRight: 14,
+  },
+  pillThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: THEME.light.border,
+  },
+  takenBadgeOverlay: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    backgroundColor: THEME.colors.statusTaken,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
   },
 });

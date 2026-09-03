@@ -6,6 +6,7 @@ export interface MedicineInput {
   dosage: string;
   reminderTimes: string[]; // e.g. ["08:00", "12:00", "20:00"]
   daysOfWeek: string[];    // e.g. ["MON", "WED", "FRI"] or ["ALL"]
+  imageUri?: string | null;
 }
 
 export interface MedicineRecord {
@@ -14,6 +15,7 @@ export interface MedicineRecord {
   dosage: string;
   reminderTimes: string[];
   daysOfWeek: string[];
+  imageUri?: string;
   createdAt: string;
 }
 
@@ -24,14 +26,15 @@ export const MedicineRepo = {
     const createdAt = new Date().toISOString();
 
     await db.runAsync(
-      `INSERT INTO medicines (id, name, dosage, reminder_times, days_of_week, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO medicines (id, name, dosage, reminder_times, days_of_week, image_uri, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         input.name.trim(),
         input.dosage.trim(),
         JSON.stringify(input.reminderTimes),
         JSON.stringify(input.daysOfWeek),
+        input.imageUri || null,
         createdAt,
       ]
     );
@@ -43,13 +46,14 @@ export const MedicineRepo = {
     const db = await getDatabase();
     await db.runAsync(
       `UPDATE medicines 
-       SET name = ?, dosage = ?, reminder_times = ?, days_of_week = ? 
+       SET name = ?, dosage = ?, reminder_times = ?, days_of_week = ?, image_uri = ? 
        WHERE id = ?`,
       [
         input.name.trim(),
         input.dosage.trim(),
         JSON.stringify(input.reminderTimes),
         JSON.stringify(input.daysOfWeek),
+        input.imageUri || null,
         id,
       ]
     );
@@ -63,6 +67,7 @@ export const MedicineRepo = {
       dosage: string;
       reminder_times: string;
       days_of_week: string;
+      image_uri: string | null;
       created_at: string;
     }>('SELECT * FROM medicines ORDER BY created_at DESC');
 
@@ -72,6 +77,7 @@ export const MedicineRepo = {
       dosage: row.dosage,
       reminderTimes: JSON.parse(row.reminder_times || '[]'),
       daysOfWeek: JSON.parse(row.days_of_week || '[]'),
+      imageUri: row.image_uri || undefined,
       createdAt: row.created_at,
     }));
   },

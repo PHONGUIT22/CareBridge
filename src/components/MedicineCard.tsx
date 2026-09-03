@@ -99,7 +99,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
                   (stockCount ?? 30) <= 5 ? styles.stockTextLow : styles.stockTextNormal,
                 ]}
               >
-                {(stockCount ?? 30) <= 5 ? `Còn ${stockCount ?? 0}v (Refill)` : `${stockCount ?? 30} viên`}
+                {(stockCount ?? 30) <= 5 ? `${stockCount ?? 0} left (Refill)` : `${stockCount ?? 30} pills`}
               </Text>
             </TouchableOpacity>
             <Feather name="edit-2" size={14} color={THEME.light.textMuted} style={{ marginLeft: 6 }} />

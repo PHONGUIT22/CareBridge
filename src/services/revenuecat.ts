@@ -5,7 +5,7 @@ const API_KEYS = {
   testOrIos: process.env.EXPO_PUBLIC_RC_TEST_KEY || 'test_NBVokGjAXCxzSkUOhtioMYGEFLL',
 };
 
-// Ưu tiên key Android thật, fallback sang Test key
+// Prioritize real Android key, fallback to Test key
 const REVENUECAT_PUBLIC_API_KEY =
   Platform.OS === 'android' ? API_KEYS.android : API_KEYS.testOrIos;
 
@@ -15,7 +15,7 @@ let isProActive = false;
 
 export const RevenueCatService = {
   /**
-   * 1. Khởi tạo SDK RevenueCat khi mở app
+   * 1. Initialize RevenueCat SDK on app launch
    */
   async init(): Promise<void> {
     try {
@@ -29,8 +29,8 @@ export const RevenueCatService = {
   },
 
   /**
-   * 2. Ghi nhận dữ liệu quảng cáo (Catvertising Track)
-   * Đẩy doanh thu quảng cáo Ad Revenue về Dashboard RevenueCat
+   * 2. Track ad revenue data (Catvertising Track)
+   * Push ad revenue impressions to RevenueCat Dashboard
    */
   async trackAdImpression(networkName: string, adUnitId: string, revenue: number): Promise<void> {
     try {
@@ -49,7 +49,7 @@ export const RevenueCatService = {
   },
 
   /**
-   * 3. Kiểm tra trạng thái Pro
+   * 3. Check Pro subscription status
    */
   async isPro(): Promise<boolean> {
     if (isProActive) return true;
@@ -64,7 +64,7 @@ export const RevenueCatService = {
   },
 
   /**
-   * 4. Mua gói Pro
+   * 4. Purchase Pro entitlement
    */
   async purchasePro(): Promise<boolean> {
     try {
@@ -84,7 +84,7 @@ export const RevenueCatService = {
   },
 
   /**
-   * 5. Khôi phục gói Pro
+   * 5. Restore Pro purchases
    */
   async restorePurchases(): Promise<boolean> {
     isProActive = true;
@@ -96,5 +96,5 @@ export const RevenueCatService = {
   },
 };
 
-// Export alias để tương thích các component cũ
+// Export alias for backwards compatibility
 export const SubscriptionService = RevenueCatService;

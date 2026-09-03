@@ -78,10 +78,10 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
             {canSkip ? (
               <Text style={styles.claimBtnText}>
                 {placement === 'refill_stock'
-                  ? `NHẬN +30 VIÊN ${medicineName ? medicineName.toUpperCase() : 'THUỐC'}`
+                  ? `CLAIM +30 PILLS ${medicineName ? `(${medicineName.toUpperCase()})` : 'REFILL'}`
                   : placement === 'export_pdf'
-                  ? 'XUẤT BÁO CÁO PDF'
-                  : 'THÊM ĐƠN THUỐC'}
+                  ? 'EXPORT PDF REPORT'
+                  : 'ADD PRESCRIPTION'}
               </Text>
             ) : (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

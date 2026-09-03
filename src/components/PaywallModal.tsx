@@ -90,7 +90,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
             <Text style={styles.priceTag}>$4.99</Text>
           </View>
 
-          {/* NÚT MUA GÓI PRO */}
+          {/* PRO UPGRADE BUTTON */}
           <TouchableOpacity
             style={styles.purchaseBtn}
             onPress={handlePurchase}
@@ -104,7 +104,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
             )}
           </TouchableOpacity>
 
-          {/* NÚT RESET VỀ FREE CHO GIÁM KHẢO TEST */}
+          {/* RESET TO FREE TIER BUTTON FOR TESTING */}
           <TouchableOpacity style={styles.resetBtn} onPress={handleResetFree}>
             <Text style={styles.resetBtnText}>[Judge Demo] Reset to Free Plan (Lock Features)</Text>
           </TouchableOpacity>

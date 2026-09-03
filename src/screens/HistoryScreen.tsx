@@ -77,7 +77,7 @@ export const HistoryScreen: React.FC = () => {
   };
 
   const handleExportPDF = () => {
-    setIsAdVisible(true); // Bấm Export thì bật Ads lên ngay
+    setIsAdVisible(true); // Display rewarded ad on Export action
   };
 
   const executeRealExport = async () => {
@@ -157,7 +157,7 @@ export const HistoryScreen: React.FC = () => {
           })
         )}
 
-        {/* BANNER TÀI TRỢ DOANH THU REVENUECAT ADS (Catvertising) */}
+        {/* SPONSORED HEALTH BANNER (RevenueCat Catvertising) */}
         <SponsoredHealthBanner placement="history_footer" />
       </ScrollView>
 

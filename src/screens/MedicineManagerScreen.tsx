@@ -34,7 +34,7 @@ const PRESET_MEDICINES = [
   { name: 'Aspirin (Heart)', icon: 'heart', defaultDose: '81 mg' },
   { name: 'Vitamin / Multi', icon: 'fruit-cherries', defaultDose: '1 Pill' },
   { name: 'Eye Drops', icon: 'eye-outline', defaultDose: '2 Drops' },
-  { name: 'panadol', icon: 'pill', defaultDose: '500 mg' },
+  { name: 'Panadol', icon: 'pill', defaultDose: '500 mg' },
   { name: 'Calcium / Bones', icon: 'bone', defaultDose: '600 mg' },
 ];
 
@@ -289,9 +289,9 @@ export const MedicineManagerScreen: React.FC = () => {
         />
       </View>
 
-      {/* 2 CỘT CHO Z FOLD MỞ TOANG / 1 CỘT CHO MÀN HÌNH THƯỜNG */}
+      {/* TWO-COLUMN LAYOUT FOR UNFOLDED Z FOLD / SINGLE COLUMN FOR STANDARD PHONE */}
       <View style={[styles.mainLayoutWrapper, isUnfoldedFold && styles.twoColumnLayout]}>
-        {/* CỘT TRÁI: DANH SÁCH THUỐC */}
+        {/* LEFT COLUMN: MEDICATION LIST */}
         <View style={isUnfoldedFold ? styles.columnLeft : { flex: 1 }}>
           <ScrollView
             contentContainerStyle={styles.scrollContent}
@@ -354,7 +354,7 @@ export const MedicineManagerScreen: React.FC = () => {
           </ScrollView>
         </View>
 
-        {/* CỘT PHẢI (CHỈ HIỆN KHI MỞ TOANG MÀN HÌNH Z FOLD) */}
+        {/* RIGHT COLUMN (SHOWN WHEN EXPANDED ON GALAXY Z FOLD) */}
         {isUnfoldedFold && (
           <View style={styles.columnRight}>
             <View style={styles.foldClockCard}>
@@ -377,7 +377,7 @@ export const MedicineManagerScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* 6. MODAL THÊM / SỬA */}
+      {/* 6. ADD / EDIT PRESCRIPTION MODAL */}
       <Modal
         visible={isModalVisible}
         animationType="slide"

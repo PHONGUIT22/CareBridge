@@ -16,7 +16,7 @@ const SPONSORED_TIPS = [
     cpmRevenue: 0.015, // $0.015 USD
   },
   {
-    title: 'Hydration Partner: Nestlé Health',
+    title: 'Hydration Partner: Nestle Health',
     description: 'Drinking 1 glass of warm water before taking medication aids absorption.',
     partner: 'Pure Life Medical',
     cpmRevenue: 0.02,
@@ -27,12 +27,12 @@ export const SponsoredHealthBanner: React.FC<SponsoredBannerProps> = ({ placemen
   const [tip] = useState(() => SPONSORED_TIPS[placement === 'history_footer' ? 0 : 1]);
 
   useEffect(() => {
-    // Tự động bắn dữ liệu quảng cáo về Dashboard RevenueCat ngay khi Banner hiển thị
+    // Automatically track ad impression to RevenueCat dashboard when banner is displayed
     RevenueCatService.trackAdImpression('AdMob', placement, tip.cpmRevenue);
   }, [placement, tip]);
 
   const handleLearnMore = () => {
-    // Mở liên kết y tế hữu ích hoặc bắn thêm interaction impression
+    // Open trusted clinical health resource or track interaction impression
     RevenueCatService.trackAdImpression('AdMob_Click', `${placement}_interaction`, 0.05);
     Linking.openURL('https://www.cdc.gov/bloodpressure/index.htm').catch(() => {});
   };

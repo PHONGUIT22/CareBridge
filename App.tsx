@@ -17,7 +17,7 @@ export default function App() {
       try {
         await Promise.all([
           initDB(),
-          RevenueCatService.init(), // <-- Khởi động RevenueCat ngay khi mở app
+          RevenueCatService.init(), // <-- Initialize RevenueCat on app startup
         ]);
         setIsDbReady(true);
       } catch (error) {

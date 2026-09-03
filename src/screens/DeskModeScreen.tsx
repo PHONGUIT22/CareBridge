@@ -157,7 +157,7 @@ export const DeskModeScreen: React.FC = () => {
               You have taken all scheduled medications for today. Rest well!
             </Text>
 
-            {/* GỢI Ý BÀI TẬP THỞ SỨC KHỎE TÀI TRỢ */}
+            {/* SPONSORED HEALTH & BREATHING EXERCISE */}
             <View style={{ width: '100%', marginTop: 10 }}>
               <SponsoredHealthBanner placement="desk_completed" />
             </View>

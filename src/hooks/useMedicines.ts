@@ -101,9 +101,9 @@ export function useMedicines(selectedDate: Date) {
         // Trigger low-stock warning when 5 or fewer pills remain
         if (isTaking && remainingStock <= 5) {
           Alert.alert(
-            'Tủ thuốc sắp hết!',
-            `Thuốc ${targetItem.name} chỉ còn ${remainingStock} viên. Hãy nạp lại tủ thuốc để duy trì đơn uống.`,
-            [{ text: 'Đã hiểu' }]
+            'Medication Running Low!',
+            `${targetItem.name} has only ${remainingStock} pill${remainingStock === 1 ? '' : 's'} remaining. Please refill your medicine box to stay on schedule.`,
+            [{ text: 'Understood' }]
           );
         }
       }

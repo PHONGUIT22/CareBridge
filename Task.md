@@ -1,2 +1,2 @@
-//Habit ko đc check từ ngày hôm trước bắt đầu từ ngay hôm nay, giờ sửa sao
-//xóa task mà biểu đồ vẫn k xóa
+// Habits should not allow check-ins from previous days starting today, how to fix
+// Deleting task does not update/clear chart

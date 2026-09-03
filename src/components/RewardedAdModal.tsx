@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Modal, ActivityIndicator, Alert } from 'react-native';
 import { THEME } from '../constants/theme';
 import { RevenueCatService } from '../services/revenuecat';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { RewardedAd, RewardedAdEventType, AdEventType, TestIds } from 'react-native-google-mobile-ads';
 
 interface RewardedAdModalProps {
   visible: boolean;
@@ -12,84 +12,89 @@ interface RewardedAdModalProps {
   medicineName?: string;
 }
 
+// Use Google Test ID to prevent policy violations during development
+const adUnitId = __DEV__ ? TestIds.REWARDED : 'ca-app-pub-xxxxxxxxxxx/yyyyyyyyyy';
+const rewarded = RewardedAd.createForAdRequest(adUnitId, {
+  requestNonPersonalizedAdsOnly: true,
+});
+
 export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
   visible,
   onAdCompleted,
   onClose,
   placement,
-  medicineName,
 }) => {
-  const [countdown, setCountdown] = useState(3);
-  const [canSkip, setCanSkip] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (!visible) {
-      setCountdown(3);
-      setCanSkip(false);
-      return;
-    }
+    if (!visible) return;
 
-    // 3-second countdown timer
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setCanSkip(true);
-          // Automatically attribute ad revenue to RevenueCat dashboard
-          RevenueCatService.trackAdImpression('AdMob_Rewarded', placement, 0.05);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    // 1. Load ad from Google servers
+    const unsubscribeLoaded = rewarded.addAdEventListener(RewardedAdEventType.LOADED, () => {
+      setLoaded(true);
+      rewarded.show(); // Show immediately once loaded
+    });
 
-    return () => clearInterval(timer);
-  }, [visible, placement]);
+    // 2. User completes watching and earns reward
+    const unsubscribeEarned = rewarded.addAdEventListener(RewardedAdEventType.EARNED_REWARD, (reward) => {
+      onAdCompleted();
+      onClose();
+    });
 
-  const handleClaim = () => {
-    onClose();
-    onAdCompleted();
-  };
+    // 3. Ad revenue attribution: capture revenue event from Google to send to RevenueCat (onPaidEvent -> AdEventType.PAID)
+    const unsubscribePaid = rewarded.addAdEventListener(AdEventType.PAID, (paidEvent: any) => {
+      // paidEvent.value is revenue in micro-currency (micros). Divide by 1,000,000.
+      const revenueInUSD = paidEvent?.value ? paidEvent.value / 1000000 : 0.05;
+
+      RevenueCatService.trackAdImpression(
+        'AdMob',
+        placement,
+        revenueInUSD
+      );
+    });
+
+    // If user closes the ad midway
+    const unsubscribeClosed = rewarded.addAdEventListener(AdEventType.CLOSED, () => {
+      onClose();
+    });
+
+    // Fallback if ad cannot be loaded
+    const unsubscribeError = rewarded.addAdEventListener(AdEventType.ERROR, (error) => {
+      console.warn('[AdMob Rewarded Error]', error);
+      Alert.alert(
+        'Ad Notice',
+        'Could not load sponsored ad. Proceeding with reward...',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              onAdCompleted();
+              onClose();
+            },
+          },
+        ]
+      );
+    });
+
+    rewarded.load();
+
+    return () => {
+      unsubscribeLoaded();
+      unsubscribeEarned();
+      unsubscribePaid();
+      unsubscribeClosed();
+      unsubscribeError();
+    };
+  }, [visible, placement, onAdCompleted, onClose]);
+
+  if (!visible) return null;
 
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.backdrop}>
         <View style={styles.adCard}>
-          <View style={styles.topBadge}>
-            <Text style={styles.topBadgeText}>SPONSORED HEALTH PARTNER</Text>
-            <View style={styles.timerBadge}>
-              <Text style={styles.timerText}>{canSkip ? 'Reward Ready' : `Ad: ${countdown}s`}</Text>
-            </View>
-          </View>
-
-          <View style={styles.adContent}>
-            <MaterialCommunityIcons name="shield-airplane" size={48} color={THEME.colors.primary} />
-            <Text style={styles.adTitle}>Omron Healthcare • Daily Health</Text>
-            <Text style={styles.adDesc}>
-              Taking blood pressure medication regularly reduces cardiovascular risks by 40%. Keep up your streak!
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.claimBtn, !canSkip && styles.claimBtnDisabled]}
-            disabled={!canSkip}
-            onPress={handleClaim}
-          >
-            {canSkip ? (
-              <Text style={styles.claimBtnText}>
-                {placement === 'refill_stock'
-                  ? `CLAIM +30 PILLS ${medicineName ? `(${medicineName.toUpperCase()})` : 'REFILL'}`
-                  : placement === 'export_pdf'
-                  ? 'EXPORT PDF REPORT'
-                  : 'ADD PRESCRIPTION'}
-              </Text>
-            ) : (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <ActivityIndicator size="small" color="#FFFFFF" />
-                <Text style={styles.claimBtnText}>Watching Partner Message ({countdown}s)...</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          <ActivityIndicator size="large" color={THEME.colors.primary} />
+          <Text style={styles.loadingText}>Loading Sponsored Message...</Text>
         </View>
       </View>
     </Modal>
@@ -97,16 +102,7 @@ export const RewardedAdModal: React.FC<RewardedAdModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  adCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, width: '100%', maxWidth: 360 },
-  topBadge: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  topBadgeText: { fontSize: 11, fontWeight: '800', color: THEME.colors.royalBlue, letterSpacing: 1 },
-  timerBadge: { backgroundColor: '#F1F5F9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  timerText: { fontSize: 11, fontWeight: '700', color: '#64748B' },
-  adContent: { alignItems: 'center', paddingVertical: 14 },
-  adTitle: { fontSize: 17, fontWeight: '900', color: '#0F172A', marginTop: 10, textAlign: 'center' },
-  adDesc: { fontSize: 13, color: '#64748B', textAlign: 'center', marginTop: 6, lineHeight: 18 },
-  claimBtn: { backgroundColor: THEME.colors.primary, height: 50, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginTop: 16 },
-  claimBtnDisabled: { backgroundColor: '#94A3B8' },
-  claimBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900', letterSpacing: 0.5 },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', alignItems: 'center' },
+  adCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 30, alignItems: 'center' },
+  loadingText: { marginTop: 16, fontSize: 14, fontWeight: '700', color: THEME.colors.primary },
 });

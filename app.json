@@ -46,7 +46,19 @@
           "mode": "development"
         }
       ],
-      "expo-sqlite"
-    ]
+      "expo-sqlite",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "277c4b5d-3692-4f78-b0aa-71311e10a23a"
+      }
+    }
   }
 }

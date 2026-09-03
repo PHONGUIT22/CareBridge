@@ -11,7 +11,6 @@ const REVENUECAT_PUBLIC_API_KEY =
 
 export const ENTITLEMENT_ID = 'carebridge_pro';
 
-let isProActive = false;
 
 export const RevenueCatService = {
   /**
@@ -52,14 +51,12 @@ export const RevenueCatService = {
    * 3. Check Pro subscription status
    */
   async isPro(): Promise<boolean> {
-    if (isProActive) return true;
-
     try {
       const Purchases = require('react-native-purchases').default;
       const customerInfo = await Purchases.getCustomerInfo();
       return !!customerInfo.entitlements.active[ENTITLEMENT_ID];
     } catch (e) {
-      return isProActive;
+      return false;
     }
   },
 
@@ -71,28 +68,35 @@ export const RevenueCatService = {
       const Purchases = require('react-native-purchases').default;
       const offerings = await Purchases.getOfferings();
       if (offerings.current && offerings.current.availablePackages.length > 0) {
+        // Trigger native OS payment sheet
         const { customerInfo } = await Purchases.purchasePackage(offerings.current.availablePackages[0]);
-        isProActive = !!customerInfo.entitlements.active[ENTITLEMENT_ID];
-        return isProActive;
+        return !!customerInfo.entitlements.active[ENTITLEMENT_ID];
       }
-    } catch (e) {
-      console.log('[RevenueCat Sandbox Activated]');
+      return false;
+    } catch (e: any) {
+      if (!e.userCancelled) {
+        console.error('[RevenueCat Error]', e);
+      }
+      return false; // Return false, no fake pro fallback
     }
-
-    isProActive = true;
-    return true;
   },
 
   /**
    * 5. Restore Pro purchases
    */
   async restorePurchases(): Promise<boolean> {
-    isProActive = true;
-    return true;
+    try {
+      const Purchases = require('react-native-purchases').default;
+      const customerInfo = await Purchases.restorePurchases();
+      return !!customerInfo.entitlements.active[ENTITLEMENT_ID];
+    } catch (e: any) {
+      console.error('[RevenueCat Restore Error]', e);
+      return false;
+    }
   },
 
   resetToFree(): void {
-    isProActive = false;
+    // Kept for backward compatibility
   },
 };
 

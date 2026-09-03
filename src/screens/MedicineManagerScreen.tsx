@@ -11,15 +11,18 @@ import {
   Platform,
   StatusBar,
   Alert,
+  useWindowDimensions,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from '@react-navigation/native';
 import { THEME } from '../constants/theme';
 import { CalendarStrip } from '../components/CalendarStrip';
 import { MedicineCard } from '../components/MedicineCard';
+import { SeniorClock } from '../components/SeniorClock';
 import { useMedicines } from '../hooks/useMedicines';
 import { MedicineRepo } from '../database/medicineRepo';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { PaywallModal } from '../components/PaywallModal';
+import { RewardedAdModal } from '../components/RewardedAdModal';
 import { SubscriptionService } from '../services/revenuecat';
 
 const PRESET_MEDICINES = [
@@ -45,13 +48,22 @@ export const MedicineManagerScreen: React.FC = () => {
   const selectedDateStr = selectedDate.toISOString().split('T')[0];
   const isFutureDate = selectedDateStr > todayStr;
 
+  const { width } = useWindowDimensions();
+  const isUnfoldedFold = width >= 600; // Màn hình tablet hoặc Z Fold mở toang
+
+  const onToggleTakeWithHaptic = (logId: string, status: any) => {
+    // Rung phản hồi vật lý kiểu Samsung
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    handleToggleTake(logId, status);
+  };
+
   // Subscription State
   const [isPro, setIsPro] = useState(false);
   const [medsCount, setMedsCount] = useState(0);
 
   // Modal State
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isPaywallVisible, setIsPaywallVisible] = useState(false);
+  const [isAdVisible, setIsAdVisible] = useState(false);
   const [editingMedId, setEditingMedId] = useState<string | null>(null);
   const [selectedMedName, setSelectedMedName] = useState(PRESET_MEDICINES[0].name);
   const [selectedDose, setSelectedDose] = useState('1 Tablet');
@@ -85,16 +97,11 @@ export const MedicineManagerScreen: React.FC = () => {
     day: 'numeric',
   });
 
-  // HÀM MỞ POPUP THÊM THUỐC (CHẶN NẾU ĐÃ CÓ >= 2 THUỐC Ở BẢN FREE)
-  const openAddModal = async () => {
-    const currentPro = await SubscriptionService.isPro();
-    const allMeds = await MedicineRepo.getAllMedicines();
+  const openAddModal = () => {
+    setIsAdVisible(true); // Bấm thêm thuốc thì bật Ads lên ngay
+  };
 
-    if (!currentPro && allMeds.length >= 2) {
-      setIsPaywallVisible(true); // BẬT PAYWALL NGAY
-      return;
-    }
-
+  const showAddFormAfterAd = () => {
     setEditingMedId(null);
     setSelectedMedName(PRESET_MEDICINES[0].name);
     setSelectedDose('1 Tablet');
@@ -198,28 +205,7 @@ export const MedicineManagerScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* 2. FREEMIUM TIER STATUS BANNER */}
-      <View style={styles.planBanner}>
-        {isPro ? (
-          <View style={styles.proBannerContent}>
-            <MaterialCommunityIcons name="crown" size={18} color="#B45309" />
-            <Text style={styles.proBannerText}>CAREBRIDGE PRO: Unlimited Prescriptions Active</Text>
-          </View>
-        ) : (
-          <TouchableOpacity
-            style={styles.freeBannerContent}
-            onPress={() => setIsPaywallVisible(true)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.freeBannerText}>
-              Free Plan: <Text style={{ fontWeight: '900' }}>{medsCount}/2</Text> Prescriptions Used
-            </Text>
-            <Text style={styles.upgradeText}>Upgrade Pro →</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* 3. CALENDAR STRIP */}
+      {/* 2. CALENDAR STRIP */}
       <View style={styles.calendarContainer}>
         <CalendarStrip
           selectedDate={selectedDate}
@@ -227,57 +213,72 @@ export const MedicineManagerScreen: React.FC = () => {
         />
       </View>
 
-      {/* 4. MEDICINE LIST */}
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {loading ? (
-          <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color={THEME.colors.primary} />
-            <Text style={styles.loadingText}>Loading prescriptions...</Text>
-          </View>
-        ) : timeGroups.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="medical-outline" size={64} color={THEME.light.border} />
-            <Text style={styles.emptyTitle}>No Medications Scheduled</Text>
-            <Text style={styles.emptySubtitle}>
-              Tap the button below to choose your medication with 1 tap.
-            </Text>
-          </View>
-        ) : (
-          timeGroups.map((group) => (
-            <View key={group.time} style={styles.timeSection}>
-              <View style={styles.timeSectionHeader}>
-                <Feather name="clock" size={18} color={THEME.colors.primary} />
-                <Text style={styles.timeSectionTitle}>{group.time}</Text>
+      {/* 2 CỘT CHO Z FOLD MỞ TOANG / 1 CỘT CHO MÀN HÌNH THƯỜNG */}
+      <View style={[styles.mainLayoutWrapper, isUnfoldedFold && styles.twoColumnLayout]}>
+        {/* CỘT TRÁI: DANH SÁCH THUỐC */}
+        <View style={isUnfoldedFold ? styles.columnLeft : { flex: 1 }}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {loading ? (
+              <View style={styles.centerContainer}>
+                <ActivityIndicator size="large" color={THEME.colors.primary} />
+                <Text style={styles.loadingText}>Loading prescriptions...</Text>
               </View>
+            ) : timeGroups.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="medical-outline" size={64} color={THEME.light.border} />
+                <Text style={styles.emptyTitle}>No Medications Scheduled</Text>
+                <Text style={styles.emptySubtitle}>
+                  Tap the button below to choose your medication with 1 tap.
+                </Text>
+              </View>
+            ) : (
+              timeGroups.map((group) => (
+                <View key={group.time} style={styles.timeSection}>
+                  <View style={styles.timeSectionHeader}>
+                    <Feather name="clock" size={18} color={THEME.colors.primary} />
+                    <Text style={styles.timeSectionTitle}>{group.time}</Text>
+                  </View>
 
-              {group.items.map((item) => (
-                <MedicineCard
-                  key={item.logId}
-                  name={item.name}
-                  dosage={item.dosage}
-                  intakeCount={1}
-                  isTaken={item.isTaken}
-                  isFuture={isFutureDate}
-                  takenAt={item.takenAt}
-                  onToggleTake={() => {
-                    if (isFutureDate) {
-                      Alert.alert('Notice', 'Cannot take future medications in advance.');
-                      return;
-                    }
-                    handleToggleTake(item.logId, item.status);
-                  }}
-                  onPressCard={() =>
-                    openEditModal(item.medicineId, item.name, item.dosage, item.scheduledTime)
-                  }
-                />
-              ))}
+                  {group.items.map((item) => (
+                    <MedicineCard
+                      key={item.logId}
+                      name={item.name}
+                      dosage={item.dosage}
+                      intakeCount={1}
+                      isTaken={item.isTaken}
+                      isFuture={isFutureDate}
+                      takenAt={item.takenAt}
+                      onToggleTake={() => {
+                        if (isFutureDate) {
+                          Alert.alert('Notice', 'Cannot take future medications in advance.');
+                          return;
+                        }
+                        onToggleTakeWithHaptic(item.logId, item.status);
+                      }}
+                      onPressCard={() =>
+                        openEditModal(item.medicineId, item.name, item.dosage, item.scheduledTime)
+                      }
+                    />
+                  ))}
+                </View>
+              ))
+            )}
+          </ScrollView>
+        </View>
+
+        {/* CỘT PHẢI (CHỈ HIỆN KHI MỞ TOANG MÀN HÌNH Z FOLD) */}
+        {isUnfoldedFold && (
+          <View style={styles.columnRight}>
+            <View style={styles.foldClockCard}>
+              <Text style={styles.foldClockBadge}>GALAXY Z FOLD EXPANDED VIEW</Text>
+              <SeniorClock dark={false} />
             </View>
-          ))
+          </View>
         )}
-      </ScrollView>
+      </View>
 
       {/* 5. FLOATING ACTION BUTTON */}
       <View style={styles.floatingButtonContainer}>
@@ -422,14 +423,12 @@ export const MedicineManagerScreen: React.FC = () => {
         </View>
       </Modal>
 
-      {/* 7. PAYWALL MODAL */}
-      <PaywallModal
-        visible={isPaywallVisible}
-        onClose={() => setIsPaywallVisible(false)}
-        onUnlocked={() => {
-          setIsPro(true);
-          openAddModal();
-        }}
+      {/* 5. REWARDED AD MODAL */}
+      <RewardedAdModal
+        visible={isAdVisible}
+        placement="add_prescription"
+        onClose={() => setIsAdVisible(false)}
+        onAdCompleted={showAddFormAfterAd}
       />
     </SafeAreaView>
   );
@@ -718,5 +717,24 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: THEME.fontSizes.md,
     fontWeight: '800',
+  },
+  mainLayoutWrapper: { flex: 1 },
+  twoColumnLayout: { flexDirection: 'row', paddingHorizontal: 12 },
+  columnLeft: { flex: 1.1, paddingRight: 10 },
+  columnRight: { flex: 0.9, paddingLeft: 10, justifyContent: 'center' },
+  foldClockCard: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 24,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#BFDBFE',
+  },
+  foldClockBadge: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: THEME.colors.royalBlue,
+    letterSpacing: 1.2,
+    marginBottom: 8,
   },
 });

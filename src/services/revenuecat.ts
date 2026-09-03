@@ -1,7 +1,14 @@
 import { Platform } from 'react-native';
 
-// Public API Key lấy trực tiếp từ RevenueCat Dashboard của bạn
-const REVENUECAT_PUBLIC_API_KEY = 'test_NBVokGjAXCxzSkUOhtioMYGEFLL';
+const API_KEYS = {
+  android: process.env.EXPO_PUBLIC_RC_ANDROID_KEY || 'goog_ljnYRHEnlYgxgoPbHMzpJbgpBkr',
+  testOrIos: process.env.EXPO_PUBLIC_RC_TEST_KEY || 'test_NBVokGjAXCxzSkUOhtioMYGEFLL',
+};
+
+// Ưu tiên key Android thật, fallback sang Test key
+const REVENUECAT_PUBLIC_API_KEY =
+  Platform.OS === 'android' ? API_KEYS.android : API_KEYS.testOrIos;
+
 export const ENTITLEMENT_ID = 'carebridge_pro';
 
 let isProActive = false;

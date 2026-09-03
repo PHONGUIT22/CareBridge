@@ -17,6 +17,13 @@
     },
     "android": {
       "package": "com.carebridge.app",
+      "resizeableActivity": true,
+      "supportsScreens": {
+        "small": true,
+        "normal": true,
+        "large": true,
+        "xlarge": true
+      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

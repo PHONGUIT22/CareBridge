@@ -17,8 +17,7 @@ import { LogRepo, DailyLogItem } from '../database/logRepo';
 import { MedicineRepo, MedicineRecord } from '../database/medicineRepo';
 import { MedicationPunchCard } from '../components/MedicationPunchCard';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { PaywallModal } from '../components/PaywallModal';
-import { SubscriptionService } from '../services/revenuecat';
+import { RewardedAdModal } from '../components/RewardedAdModal';
 import { PdfService } from '../services/pdfService';
 import { SponsoredHealthBanner } from '../components/SponsoredHealthBanner';
 
@@ -35,7 +34,7 @@ export const HistoryScreen: React.FC = () => {
   const [logs, setLogs] = useState<DailyLogItem[]>([]);
   const [medicines, setMedicines] = useState<MedicineRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [isPaywallVisible, setIsPaywallVisible] = useState(false);
+  const [isAdVisible, setIsAdVisible] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -77,17 +76,11 @@ export const HistoryScreen: React.FC = () => {
     );
   };
 
-  // NÚT XUẤT PDF CÓ KHÓA PAYWALL
-  const handleExportPDF = async () => {
-    const isPro = await SubscriptionService.isPro();
+  const handleExportPDF = () => {
+    setIsAdVisible(true); // Bấm Export thì bật Ads lên ngay
+  };
 
-    // 1. CHƯA MUA PRO -> MỞ PAYWALL NGAY
-    if (!isPro) {
-      setIsPaywallVisible(true);
-      return;
-    }
-
-    // 2. ĐÃ MUA PRO -> XUẤT FILE PDF THẬT
+  const executeRealExport = async () => {
     try {
       const [allLogs, allMeds] = await Promise.all([
         LogRepo.getAllLogs(),
@@ -168,11 +161,12 @@ export const HistoryScreen: React.FC = () => {
         <SponsoredHealthBanner placement="history_footer" />
       </ScrollView>
 
-      {/* 3. REVENUECAT PAYWALL MODAL */}
-      <PaywallModal
-        visible={isPaywallVisible}
-        onClose={() => setIsPaywallVisible(false)}
-        onUnlocked={handleExportPDF}
+      {/* 3. REWARDED AD MODAL */}
+      <RewardedAdModal
+        visible={isAdVisible}
+        placement="export_pdf"
+        onClose={() => setIsAdVisible(false)}
+        onAdCompleted={executeRealExport}
       />
     </SafeAreaView>
   );

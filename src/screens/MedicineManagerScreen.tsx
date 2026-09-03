@@ -13,6 +13,7 @@ import {
   Alert,
   useWindowDimensions,
   Image,
+  TextInput,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
@@ -209,27 +210,41 @@ export const MedicineManagerScreen: React.FC = () => {
   };
 
   const handleSaveMedicine = async () => {
+    if (!selectedMedName.trim()) {
+      Alert.alert('Missing Name', 'Please enter or select a medication name.');
+      return;
+    }
+    if (!selectedDose.trim()) {
+      Alert.alert('Missing Dosage', 'Please enter or select a dosage.');
+      return;
+    }
+
+    // Automatically normalize time format if user misses leading zero or minutes
+    let formattedTime = selectedTime.trim();
+    if (!formattedTime.includes(':')) {
+      formattedTime = `${formattedTime}:00`;
+    }
+
     try {
       if (editingMedId) {
         await MedicineRepo.updateMedicine(editingMedId, {
-          name: selectedMedName,
-          dosage: selectedDose,
-          reminderTimes: [selectedTime],
+          name: selectedMedName.trim(),
+          dosage: selectedDose.trim(),
+          reminderTimes: [formattedTime],
           daysOfWeek: selectedDays,
           imageUri: selectedImage,
         });
         Alert.alert('Updated', `Prescription "${selectedMedName}" updated!`);
       } else {
         await MedicineRepo.addMedicine({
-          name: selectedMedName,
-          dosage: selectedDose,
-          reminderTimes: [selectedTime],
+          name: selectedMedName.trim(),
+          dosage: selectedDose.trim(),
+          reminderTimes: [formattedTime],
           daysOfWeek: selectedDays,
           imageUri: selectedImage,
         });
-        Alert.alert('Prescription Saved', `Added ${selectedMedName} at ${selectedTime}`);
+        Alert.alert('Prescription Saved', `Added ${selectedMedName} at ${formattedTime}`);
       }
-
       setIsModalVisible(false);
       await updateSubscriptionState();
       await refresh();
@@ -396,7 +411,25 @@ export const MedicineManagerScreen: React.FC = () => {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.sectionLabel}>1. SELECT MEDICINE</Text>
+              {/* 1. MEDICINE NAME & QUICK PRESETS */}
+              <Text style={styles.sectionLabel}>1. MEDICINE NAME</Text>
+              <View style={styles.inputWrapper}>
+                <Feather name="edit-3" size={18} color={THEME.colors.primary} style={{ marginRight: 10 }} />
+                <TextInput
+                  style={styles.customTextInput}
+                  placeholder="e.g. Amlodipine, Panadol..."
+                  placeholderTextColor={THEME.light.textMuted}
+                  value={selectedMedName}
+                  onChangeText={setSelectedMedName}
+                />
+                {selectedMedName.length > 0 && (
+                  <TouchableOpacity onPress={() => setSelectedMedName('')}>
+                    <Feather name="x-circle" size={18} color={THEME.light.textMuted} />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <Text style={styles.subLabel}>Or choose quick suggestion:</Text>
               <View style={styles.medGrid}>
                 {PRESET_MEDICINES.map((med) => {
                   const isSelected = selectedMedName.toLowerCase() === med.name.toLowerCase();
@@ -412,7 +445,7 @@ export const MedicineManagerScreen: React.FC = () => {
                     >
                       <MaterialCommunityIcons
                         name={med.icon as any}
-                        size={22}
+                        size={20}
                         color={isSelected ? THEME.colors.textWhite : THEME.colors.primary}
                       />
                       <Text style={[styles.medChipText, isSelected && styles.medChipTextSelected]}>
@@ -423,7 +456,19 @@ export const MedicineManagerScreen: React.FC = () => {
                 })}
               </View>
 
-              <Text style={styles.sectionLabel}>2. SELECT DOSE</Text>
+              {/* 2. DOSAGE */}
+              <Text style={styles.sectionLabel}>2. DOSAGE / STRENGTH</Text>
+              <View style={styles.inputWrapper}>
+                <MaterialCommunityIcons name="pill" size={18} color={THEME.colors.primary} style={{ marginRight: 10 }} />
+                <TextInput
+                  style={styles.customTextInput}
+                  placeholder="e.g. 1 Tablet, 500 mg, 10 ml..."
+                  placeholderTextColor={THEME.light.textMuted}
+                  value={selectedDose}
+                  onChangeText={setSelectedDose}
+                />
+              </View>
+
               <View style={styles.chipsRow}>
                 {PRESET_DOSES.map((dose) => {
                   const isSelected = selectedDose === dose;
@@ -441,6 +486,7 @@ export const MedicineManagerScreen: React.FC = () => {
                 })}
               </View>
 
+              {/* PILL PHOTO */}
               <Text style={styles.sectionLabel}>PILL PHOTO (FOR VISUAL RECOGNITION)</Text>
               <View style={styles.photoPickerRow}>
                 <TouchableOpacity style={styles.photoPickerBtn} onPress={handlePickImage} activeOpacity={0.8}>
@@ -453,7 +499,6 @@ export const MedicineManagerScreen: React.FC = () => {
                     </View>
                   )}
                 </TouchableOpacity>
-
                 {selectedImage && (
                   <TouchableOpacity style={styles.removePhotoBtn} onPress={() => setSelectedImage(null)}>
                     <Feather name="trash-2" size={16} color={THEME.colors.statusSkipped} />
@@ -462,7 +507,19 @@ export const MedicineManagerScreen: React.FC = () => {
                 )}
               </View>
 
-              <Text style={styles.sectionLabel}>3. TIME TO TAKE</Text>
+              {/* 3. TIME TO TAKE */}
+              <Text style={styles.sectionLabel}>3. TIME TO TAKE (24H FORMAT)</Text>
+              <View style={styles.inputWrapper}>
+                <Feather name="clock" size={18} color={THEME.colors.primary} style={{ marginRight: 10 }} />
+                <TextInput
+                  style={styles.customTextInput}
+                  placeholder="e.g. 08:00, 14:30, 20:00"
+                  placeholderTextColor={THEME.light.textMuted}
+                  value={selectedTime}
+                  onChangeText={setSelectedTime}
+                />
+              </View>
+
               <View style={styles.chipsRow}>
                 {PRESET_TIMES.map((time) => {
                   const isSelected = selectedTime === time;
@@ -480,6 +537,7 @@ export const MedicineManagerScreen: React.FC = () => {
                 })}
               </View>
 
+              {/* 4. FREQUENCY */}
               <Text style={styles.sectionLabel}>4. FREQUENCY</Text>
               <View style={styles.chipsRow}>
                 <TouchableOpacity
@@ -490,7 +548,6 @@ export const MedicineManagerScreen: React.FC = () => {
                     Everyday
                   </Text>
                 </TouchableOpacity>
-
                 {DAYS.map((d) => (
                   <TouchableOpacity
                     key={d}
@@ -887,5 +944,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: THEME.colors.statusSkipped,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: THEME.light.border,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 50,
+    marginBottom: 10,
+  },
+  customTextInput: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+    color: THEME.light.textPrimary,
+  },
+  subLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: THEME.light.textMuted,
+    marginBottom: 8,
   },
 });

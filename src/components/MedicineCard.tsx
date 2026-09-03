@@ -78,7 +78,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
 
         <View style={styles.infoCol}>
           <View style={styles.titleRow}>
-            <Text style={styles.medName}>{name}</Text>
+            <Text style={styles.medName} numberOfLines={1}>{name}</Text>
             {/* Stock inventory count badge */}
             <TouchableOpacity
               style={[
@@ -187,11 +187,15 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap', // Wrap to next line if children run out of space
+    paddingRight: 10, // Prevent overlapping Take button
   },
   medName: {
     fontSize: THEME.fontSizes.lg,
     fontWeight: '800',
     color: THEME.light.textPrimary,
+    flexShrink: 1, // Shrink or truncate medicine name instead of pushing other icons
+    marginRight: 6, // Spacing with stock badge
   },
   dosageText: {
     fontSize: THEME.fontSizes.sm,

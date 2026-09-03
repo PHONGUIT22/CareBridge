@@ -23,7 +23,6 @@ interface MedicationPunchCardProps {
 
 const CELL_SIZE = 11;
 const CELL_GAP = 3.5;
-const WEEKS_COUNT = 18; // 18 rolling calendar weeks
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 export const MedicationPunchCard: React.FC<MedicationPunchCardProps> = ({
@@ -37,11 +36,11 @@ export const MedicationPunchCard: React.FC<MedicationPunchCardProps> = ({
 }) => {
   const scrollRef = useRef<ScrollView>(null);
 
-  // Accurately align with Monday -> Sunday calendar
   const { matrix, streak, complianceRate, takenCount, isTodayTaken } = useMemo(() => {
     const today = new Date();
     const todayStr = formatToISODate(today);
-    const startDate = createdAt ? createdAt.split('T')[0] : todayStr;
+    const startDateStr = createdAt ? createdAt.split('T')[0] : todayStr;
+    const startDate = new Date(startDateStr);
 
     // 1. Find Monday of current week
     const currentDay = today.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
@@ -49,9 +48,24 @@ export const MedicationPunchCard: React.FC<MedicationPunchCardProps> = ({
     const currentMonday = new Date(today);
     currentMonday.setDate(today.getDate() - daysFromMonday);
 
-    // 2. Go back 18 weeks (starting from Monday)
-    const startMonday = new Date(currentMonday);
-    startMonday.setDate(currentMonday.getDate() - (WEEKS_COUNT - 1) * 7);
+    // 2. Find Monday of prescription start week
+    const startDay = startDate.getDay();
+    const startDaysFromMonday = startDay === 0 ? 6 : startDay - 1;
+    const startMonday = new Date(startDate);
+    startMonday.setDate(startDate.getDate() - startDaysFromMonday);
+
+    // 3. Calculate actual weeks elapsed
+    const diffTime = Math.abs(currentMonday.getTime() - startMonday.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    let calculatedWeeks = Math.floor(diffDays / 7) + 1;
+
+    // Minimum 18 weeks to fill card width, maximum 52 weeks (1 year)
+    const MIN_WEEKS = 18;
+    const MAX_WEEKS = 52;
+    const dynamicWeeksCount = Math.max(MIN_WEEKS, Math.min(MAX_WEEKS, calculatedWeeks));
+
+    const adjustedStartMonday = new Date(currentMonday);
+    adjustedStartMonday.setDate(currentMonday.getDate() - (dynamicWeeksCount - 1) * 7);
 
     // Map logs for this medication
     const medLogMap = new Map<string, boolean>();
@@ -63,19 +77,19 @@ export const MedicationPunchCard: React.FC<MedicationPunchCardProps> = ({
 
     let totalTaken = 0;
     let totalScheduledDays = 0;
-
-    // 3. Build matrix: Columns = Weeks, Rows = Day of week (0: Mon -> 6: Sun)
     const columns = [];
-    for (let w = 0; w < WEEKS_COUNT; w++) {
+
+    // 4. Build week matrix
+    for (let w = 0; w < dynamicWeeksCount; w++) {
       const weekCol = [];
       for (let d = 0; d < 7; d++) {
-        const cellDate = new Date(startMonday);
-        cellDate.setDate(startMonday.getDate() + w * 7 + d);
+        const cellDate = new Date(adjustedStartMonday);
+        cellDate.setDate(adjustedStartMonday.getDate() + w * 7 + d);
         const dateStr = formatToISODate(cellDate);
 
         const isToday = dateStr === todayStr;
         const isFuture = dateStr > todayStr;
-        const isBeforeStart = dateStr < startDate;
+        const isBeforeStart = dateStr < startDateStr;
         const taken = !!medLogMap.get(dateStr);
 
         if (!isBeforeStart && !isFuture) {
@@ -89,24 +103,23 @@ export const MedicationPunchCard: React.FC<MedicationPunchCardProps> = ({
           isToday,
           isFuture,
           isBeforeStart,
-          dayIndex: d, // 0 = M, 1 = T, 2 = W, 3 = T, 4 = F, 5 = S, 6 = S
+          dayIndex: d,
         });
       }
       columns.push(weekCol);
     }
 
-    // 4. Calculate streak backwards from today
+    // 5. Calculate continuous streak backwards from today
     let currentStreak = 0;
     let checkDate = new Date(today);
     while (true) {
       const dStr = formatToISODate(checkDate);
-      if (dStr < startDate) break;
+      if (dStr < startDateStr) break;
 
       if (medLogMap.get(dStr)) {
         currentStreak++;
         checkDate.setDate(checkDate.getDate() - 1);
       } else {
-        // If today is not yet taken, do not break yesterday's streak
         if (dStr === todayStr) {
           checkDate.setDate(checkDate.getDate() - 1);
           continue;

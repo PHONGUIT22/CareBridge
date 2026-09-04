@@ -1,0 +1,67 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch: # Cho phép bấm nút kích hoạt bằng tay trên web
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Prebuild native Android
+        run: npx expo prebuild --platform android
+
+      - name: Patch AdMob version 24.0.0
+        run: |
+          node -e "
+            const fs = require('fs');
+            const file = 'android/build.gradle';
+            if (fs.existsSync(file)) {
+              let patch = \`
+              allprojects {
+                  configurations.all {
+                      resolutionStrategy {
+                          force 'com.google.android.gms:play-services-ads:24.0.0'
+                      }
+                  }
+              }
+              \`;
+              fs.appendFileSync(file, patch);
+            }
+          "
+
+      - name: Make Gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build APK
+        run: |
+          cd android
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CareBridge-APK
+          path: android/app/build/outputs/apk/debug/*.apk
+          retention-days: 7

@@ -1,50 +1,70 @@
-import {
-  RewardedAd,
-  RewardedAdEventType,
-  AdEventType,
-  TestIds,
-} from 'react-native-google-mobile-ads';
 import { RevenueCatService } from './revenuecat';
 
-// Use Test ID so that test ads reliably appear for evaluation
-const AD_UNIT_ID = TestIds.REWARDED;
+// 1. Dynamic require an toàn: Tránh văng crash khi test trên Expo Go
+let GoogleMobileAds: any = null;
+try {
+  GoogleMobileAds = require('react-native-google-mobile-ads');
+} catch (error) {
+  // Expo Go không có native module sẽ lọt vào đây và tự chạy mock
+}
+
+const RewardedAd = GoogleMobileAds?.RewardedAd;
+const RewardedAdEventType = GoogleMobileAds?.RewardedAdEventType;
+const AdEventType = GoogleMobileAds?.AdEventType;
+const TestIds = GoogleMobileAds?.TestIds;
+
+// Dùng Test ID để kiểm thử ổn định
+const AD_UNIT_ID = TestIds?.REWARDED || 'ca-app-pub-3940256099942544/5224354917';
 
 class AdmobService {
-  private rewardedAd: RewardedAd | null = null;
+  private rewardedAd: any = null;
   private isLoaded = false;
   private hasTrackedRevenueForCurrentAd = false;
 
   init() {
+    // Nếu chạy trên Expo Go, không khởi tạo native ad để tránh lỗi
+    if (!RewardedAd) {
+      console.log('[AdMob] Đang chạy Expo Go: Chuyển sang chế độ mock để test UI');
+      return;
+    }
     this.loadNewAd();
   }
 
   loadNewAd() {
+    if (!RewardedAd) return;
+
     this.hasTrackedRevenueForCurrentAd = false;
-    this.rewardedAd = RewardedAd.createForAdRequest(AD_UNIT_ID, {
-      requestNonPersonalizedAdsOnly: true,
-    });
+    try {
+      this.rewardedAd = RewardedAd.createForAdRequest(AD_UNIT_ID, {
+        requestNonPersonalizedAdsOnly: true,
+      });
 
-    this.rewardedAd.addAdEventListener(RewardedAdEventType.LOADED, () => {
-      this.isLoaded = true;
-    });
+      this.rewardedAd.addAdEventListener(RewardedAdEventType.LOADED, () => {
+        this.isLoaded = true;
+      });
 
-    // 1. If real ad triggers PAID event
-    this.rewardedAd.addAdEventListener(AdEventType.PAID, (adValue: any) => {
-      const realRevenue = (adValue?.value || 0) / 1_000_000;
-      // Default fallback eCPM $0.02 if test ad returns 0 so RevenueCat dashboard has data
-      const revenueToTrack = realRevenue > 0 ? realRevenue : 0.02;
+      // 1. Nếu quảng cáo thật kích hoạt PAID event
+      this.rewardedAd.addAdEventListener(AdEventType.PAID, (adValue: any) => {
+        const realRevenue = (adValue?.value || 0) / 1_000_000;
+        const revenueToTrack = realRevenue > 0 ? realRevenue : 0.02;
 
-      RevenueCatService.trackAdImpression('AdMob', 'rewarded_ad', revenueToTrack);
-      this.hasTrackedRevenueForCurrentAd = true;
-    });
+        RevenueCatService.trackAdImpression('AdMob', 'rewarded_ad', revenueToTrack);
+        this.hasTrackedRevenueForCurrentAd = true;
+      });
 
-    this.rewardedAd.load();
+      this.rewardedAd.load();
+    } catch (err) {
+      console.log('[AdMob load error]:', err);
+    }
   }
 
   showRewardedAd(placement: string, onRewardCallback: () => void) {
-    if (!this.rewardedAd || !this.isLoaded) {
+    // 2. Chế độ Mock cho Expo Go / Khi chưa load kịp Ad:
+    // Tự động bỏ qua quảng cáo, kích hoạt ngay callback để mày bấm nút test UI mượt mà
+    if (!RewardedAd || !this.rewardedAd || !this.isLoaded) {
+      console.log(`[Mock Mode] Bỏ qua ad cho "${placement}", mở tính năng ngay`);
       onRewardCallback();
-      this.loadNewAd();
+      if (RewardedAd) this.loadNewAd();
       return;
     }
 
@@ -54,7 +74,6 @@ class AdmobService {
       RewardedAdEventType.EARNED_REWARD,
       () => {
         earned = true;
-        // 2. Fallback: If test ad does not trigger PAID, track data to RevenueCat upon earning reward
         if (!this.hasTrackedRevenueForCurrentAd) {
           RevenueCatService.trackAdImpression('AdMob', placement, 0.02);
           this.hasTrackedRevenueForCurrentAd = true;

@@ -32,25 +32,6 @@ jobs:
       - name: Prebuild native Android
         run: npx expo prebuild --platform android
 
-      - name: Patch AdMob version 24.4.0
-        run: |
-          node -e "
-            const fs = require('fs');
-            const file = 'android/build.gradle';
-            if (fs.existsSync(file)) {
-              let patch = \`
-              allprojects {
-                  configurations.all {
-                      resolutionStrategy {
-                          force 'com.google.android.gms:play-services-ads:24.4.0'
-                      }
-                  }
-              }
-              \`;
-              fs.appendFileSync(file, patch);
-            }
-          "
-
       - name: Make Gradlew executable
         run: chmod +x android/gradlew
 

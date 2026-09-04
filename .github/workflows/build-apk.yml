@@ -27,10 +27,12 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm install
+          npx expo install --fix
 
       - name: Prebuild native Android
-        run: npx expo prebuild --platform android
+        run: npx expo prebuild --platform android --clean
 
       - name: Make Gradlew executable
         run: chmod +x android/gradlew

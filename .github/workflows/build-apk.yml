@@ -35,14 +35,14 @@ jobs:
       - name: Make Gradlew executable
         run: chmod +x android/gradlew
 
-      - name: Build APK
+      - name: Build Release APK (Bundled JS Offline)
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleRelease --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CareBridge-APK
-          path: android/app/build/outputs/apk/debug/*.apk
+          name: CareBridge-Release-APK
+          path: android/app/build/outputs/apk/release/*.apk
           retention-days: 7

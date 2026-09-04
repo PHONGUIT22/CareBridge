@@ -1,7 +1,7 @@
 name: Build Android APK
 
 on:
-  workflow_dispatch: # Cho phép bấm nút kích hoạt bằng tay trên web
+  workflow_dispatch:
 
 jobs:
   build:
@@ -32,7 +32,7 @@ jobs:
       - name: Prebuild native Android
         run: npx expo prebuild --platform android
 
-      - name: Patch AdMob version 24.0.0
+      - name: Patch AdMob version 24.4.0
         run: |
           node -e "
             const fs = require('fs');
@@ -42,7 +42,7 @@ jobs:
               allprojects {
                   configurations.all {
                       resolutionStrategy {
-                          force 'com.google.android.gms:play-services-ads:24.0.0'
+                          force 'com.google.android.gms:play-services-ads:24.4.0'
                       }
                   }
               }

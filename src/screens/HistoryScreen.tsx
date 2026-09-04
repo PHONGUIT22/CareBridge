@@ -17,9 +17,9 @@ import { LogRepo, DailyLogItem } from '../database/logRepo';
 import { MedicineRepo, MedicineRecord } from '../database/medicineRepo';
 import { MedicationPunchCard } from '../components/MedicationPunchCard';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { RewardedAdModal } from '../components/RewardedAdModal';
 import { PdfService } from '../services/pdfService';
 import { SponsoredHealthBanner } from '../components/SponsoredHealthBanner';
+import { AdService } from '../services/admobService';
 
 const CARD_PALETTES = [
   '#EA580C', // Orange
@@ -34,7 +34,6 @@ export const HistoryScreen: React.FC = () => {
   const [logs, setLogs] = useState<DailyLogItem[]>([]);
   const [medicines, setMedicines] = useState<MedicineRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [isAdVisible, setIsAdVisible] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -77,7 +76,9 @@ export const HistoryScreen: React.FC = () => {
   };
 
   const handleExportPDF = () => {
-    setIsAdVisible(true); // Display rewarded ad on Export action
+    AdService.showRewardedAd('export_pdf', async () => {
+      await executeRealExport();
+    });
   };
 
   const executeRealExport = async () => {
@@ -161,13 +162,6 @@ export const HistoryScreen: React.FC = () => {
         <SponsoredHealthBanner placement="history_footer" />
       </ScrollView>
 
-      {/* 3. REWARDED AD MODAL */}
-      <RewardedAdModal
-        visible={isAdVisible}
-        placement="export_pdf"
-        onClose={() => setIsAdVisible(false)}
-        onAdCompleted={executeRealExport}
-      />
     </SafeAreaView>
   );
 };

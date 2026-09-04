@@ -25,8 +25,8 @@ import { SeniorClock } from '../components/SeniorClock';
 import { useMedicines } from '../hooks/useMedicines';
 import { MedicineRepo } from '../database/medicineRepo';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { RewardedAdModal } from '../components/RewardedAdModal';
 import { SubscriptionService } from '../services/revenuecat';
+import { AdService } from '../services/admobService';
 
 const PRESET_MEDICINES = [
   { name: 'Blood Pressure', icon: 'heart-pulse', defaultDose: '1 Tablet' },
@@ -66,9 +66,6 @@ export const MedicineManagerScreen: React.FC = () => {
 
   // Modal State
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isAdVisible, setIsAdVisible] = useState(false);
-  const [adPlacement, setAdPlacement] = useState<'add_prescription' | 'refill_stock'>('add_prescription');
-  const [refillTarget, setRefillTarget] = useState<{ id: string; name: string } | null>(null);
   const [editingMedId, setEditingMedId] = useState<string | null>(null);
   const [selectedMedName, setSelectedMedName] = useState(PRESET_MEDICINES[0].name);
   const [selectedDose, setSelectedDose] = useState('1 Tablet');
@@ -104,26 +101,17 @@ export const MedicineManagerScreen: React.FC = () => {
   });
 
   const openAddModal = () => {
-    setAdPlacement('add_prescription');
-    setRefillTarget(null);
-    setIsAdVisible(true);
+    AdService.showRewardedAd('add_prescription', () => {
+      showAddFormAfterAd();
+    });
   };
 
   const handleRefillPress = (medicineId: string, name: string) => {
-    setRefillTarget({ id: medicineId, name });
-    setAdPlacement('refill_stock');
-    setIsAdVisible(true);
-  };
-
-  const handleAdCompleted = async () => {
-    if (adPlacement === 'refill_stock' && refillTarget) {
-      await MedicineRepo.refillMedicine(refillTarget.id, 30);
+    AdService.showRewardedAd('refill_stock', async () => {
+      await MedicineRepo.refillMedicine(medicineId, 30);
       await refresh();
-      Alert.alert('Refilled!', `Successfully added 30 pills for "${refillTarget.name}".`);
-      setRefillTarget(null);
-    } else {
-      showAddFormAfterAd();
-    }
+      Alert.alert('Refilled!', `Successfully added 30 pills for "${name}".`);
+    });
   };
 
   const showAddFormAfterAd = () => {
@@ -586,14 +574,6 @@ export const MedicineManagerScreen: React.FC = () => {
         </View>
       </Modal>
 
-      {/* 5. REWARDED AD MODAL */}
-      <RewardedAdModal
-        visible={isAdVisible}
-        placement={adPlacement}
-        medicineName={refillTarget?.name}
-        onClose={() => setIsAdVisible(false)}
-        onAdCompleted={handleAdCompleted}
-      />
     </SafeAreaView>
   );
 };

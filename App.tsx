@@ -7,12 +7,15 @@ import { initDB } from './src/database/db';
 import { THEME } from './src/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { RevenueCatService } from './src/services/revenuecat';
+import { AdService } from './src/services/admobService';
 
 export default function App() {
   const [isDbReady, setIsDbReady] = useState<boolean>(false);
   const [dbError, setDbError] = useState<string | null>(null);
 
   useEffect(() => {
+    AdService.init();
+
     async function bootstrapDatabase() {
       try {
         await Promise.all([

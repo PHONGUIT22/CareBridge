@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Platform, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { THEME } from '../constants/theme';
 import { MedicineManagerScreen } from '../screens/MedicineManagerScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { DeskModeScreen } from '../screens/DeskModeScreen';
+import { AuthWelcomeScreen } from '../screens/AuthWelcomeScreen';
 import { useFlexMode } from '../hooks/useFlexMode';
 import { Feather, Ionicons } from '@expo/vector-icons';
 
@@ -17,9 +18,15 @@ export type RootTabParamList = {
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
 export const AppNavigator: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { isFlexMode } = useFlexMode();
 
-  // 1. Automatically enlarge clock when folded 90 degrees or in landscape mode
+  // 1. Render AuthWelcomeScreen if not yet authenticated
+  if (!isAuthenticated) {
+    return <AuthWelcomeScreen onAuthenticate={() => setIsAuthenticated(true)} />;
+  }
+
+  // 2. Automatically enlarge clock when folded 90 degrees or in landscape mode
   if (isFlexMode) {
     return (
       <View style={styles.flexContainer}>

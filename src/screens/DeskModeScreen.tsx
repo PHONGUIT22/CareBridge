@@ -17,11 +17,13 @@ import { LogRepo, DailyLogItem } from '../database/logRepo';
 import { formatToISODate } from '../utils/dateUtils';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
+import * as Haptics from 'expo-haptics';
 import { SponsoredHealthBanner } from '../components/SponsoredHealthBanner';
 import { announceMedication } from '../services/speechService';
 
 export const DeskModeScreen: React.FC = () => {
   const [logs, setLogs] = useState<DailyLogItem[]>([]);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Automatically reload today's doses whenever the tab is focused
   const loadTodayLogs = useCallback(async () => {

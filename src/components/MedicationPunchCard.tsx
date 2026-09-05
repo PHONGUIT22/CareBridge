@@ -21,8 +21,8 @@ interface MedicationPunchCardProps {
   onToggleToday?: () => void;
 }
 
-const CELL_SIZE = 11;
-const CELL_GAP = 3.5;
+const CELL_SIZE = 18;
+const CELL_GAP = 5;
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 export const MedicationPunchCard: React.FC<MedicationPunchCardProps> = ({
@@ -59,8 +59,8 @@ export const MedicationPunchCard: React.FC<MedicationPunchCardProps> = ({
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     let calculatedWeeks = Math.floor(diffDays / 7) + 1;
 
-    // Minimum 18 weeks to fill card width, maximum 52 weeks (1 year)
-    const MIN_WEEKS = 18;
+    // Minimum 12 weeks to fill card width, maximum 52 weeks (1 year)
+    const MIN_WEEKS = 12;
     const MAX_WEEKS = 52;
     const dynamicWeeksCount = Math.max(MIN_WEEKS, Math.min(MAX_WEEKS, calculatedWeeks));
 
@@ -303,10 +303,10 @@ const styles = StyleSheet.create({
   gridWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.12)',
-    borderRadius: 14,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
   },
   yAxisLabels: {
     justifyContent: 'space-between',
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   dayLabelText: {
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: '800',
     color: 'rgba(255, 255, 255, 0.75)',
     lineHeight: CELL_SIZE,
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   punchCell: {
     width: CELL_SIZE,
     height: CELL_SIZE,
-    borderRadius: 2.5,
+    borderRadius: 4.5,
   },
   // Taken -> Bright white highlight
   punchCellFilled: {

@@ -29,6 +29,7 @@ import { CaregiverRepo, CaregiverProfile } from '../database/caregiverRepo';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SubscriptionService } from '../services/revenuecat';
 import { AdService } from '../services/admobService';
+import { formatToISODate } from '../utils/dateUtils';
 
 const PRESET_MEDICINES = [
   { name: 'Blood Pressure', icon: 'heart-pulse', defaultDose: '1 Tablet' },
@@ -58,8 +59,8 @@ export const MedicineManagerScreen: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const { timeGroups, loading, refresh, handleToggleTake } = useMedicines(selectedDate);
 
-  const todayStr = new Date().toISOString().split('T')[0];
-  const selectedDateStr = selectedDate.toISOString().split('T')[0];
+  const todayStr = formatToISODate(new Date());
+  const selectedDateStr = formatToISODate(selectedDate);
   const isFutureDate = selectedDateStr > todayStr;
 
   const { width } = useWindowDimensions();

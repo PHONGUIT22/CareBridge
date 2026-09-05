@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import { DailyLogItem, LogStatus, TimeGroup } from '../types';
 import { LogRepo } from '../database/logRepo';
 import { MedicineRepo } from '../database/medicineRepo';
+import { formatToISODate } from '../utils/dateUtils';
 
 function groupLogsByTime(items: DailyLogItem[]): TimeGroup[] {
   const groups: Record<string, DailyLogItem[]> = {};
@@ -28,7 +29,7 @@ export function useMedicines(selectedDate: Date) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const dateStr = selectedDate.toISOString().split('T')[0];
+  const dateStr = formatToISODate(selectedDate);
 
   const fetchData = useCallback(async () => {
     setLoading(true);

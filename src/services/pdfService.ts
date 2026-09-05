@@ -4,13 +4,14 @@ import { DailyLogItem } from '../database/logRepo';
 import { MedicineRecord } from '../database/medicineRepo';
 import { VitalsRepo } from '../database/vitalsRepo';
 import { CaregiverRepo } from '../database/caregiverRepo';
+import { formatToISODate } from '../utils/dateUtils';
 
 export const PdfService = {
   /**
    * Generate and export Doctor's Clinical Medical Report as PDF
    */
   async generateDoctorReport(logs: DailyLogItem[], medicines: MedicineRecord[]): Promise<void> {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = formatToISODate(new Date());
 
     // 1. Read caregiver profile from SQLite
     const caregiver = await CaregiverRepo.getCaregiver();

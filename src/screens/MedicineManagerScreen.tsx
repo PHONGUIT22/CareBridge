@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,8 +22,10 @@ import { THEME } from '../constants/theme';
 import { CalendarStrip } from '../components/CalendarStrip';
 import { MedicineCard } from '../components/MedicineCard';
 import { SeniorClock } from '../components/SeniorClock';
+import { QuickVitalsBar } from '../components/QuickVitalsBar';
 import { useMedicines } from '../hooks/useMedicines';
 import { MedicineRepo } from '../database/medicineRepo';
+import { CaregiverRepo, CaregiverProfile } from '../database/caregiverRepo';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SubscriptionService } from '../services/revenuecat';
 import { AdService } from '../services/admobService';
@@ -39,7 +41,16 @@ const PRESET_MEDICINES = [
   { name: 'Calcium / Bones', icon: 'bone', defaultDose: '600 mg' },
 ];
 
+// Presets for health and care routines
+const PRESET_ROUTINES = [
+  { name: 'Blood Pressure Check', icon: 'heart-pulse', defaultDose: '1 Reading', type: 'routine' },
+  { name: 'Drink Warm Water', icon: 'cup-water', defaultDose: '250 ml', type: 'routine' },
+  { name: 'Morning Walk', icon: 'walk', defaultDose: '15 Mins', type: 'routine' },
+  { name: 'Blood Glucose Test', icon: 'water-percent', defaultDose: '1 Strip', type: 'routine' },
+];
+
 const PRESET_DOSES = ['1 Tablet', '200 mg', '500 mg', '1 Pill', '2 Drops', '1 Spoon'];
+const PRESET_ROUTINE_DOSES = ['1 Reading', '250 ml', '15 Mins', '30 Mins', '1 Strip', '1 Session'];
 const PRESET_TIMES = ['08:00', '12:00', '18:00', '21:00'];
 const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
@@ -64,14 +75,37 @@ export const MedicineManagerScreen: React.FC = () => {
   const [isPro, setIsPro] = useState(false);
   const [medsCount, setMedsCount] = useState(0);
 
+  // Caregiver Profile State (synced from local SQLite)
+  const [caregiver, setCaregiver] = useState<CaregiverProfile>(() => CaregiverRepo.getCaregiverSync());
+
+  useEffect(() => {
+    CaregiverRepo.getCaregiver().then((c) => setCaregiver(c));
+    const unsubscribe = CaregiverRepo.subscribe((updated) => setCaregiver(updated));
+    return unsubscribe;
+  }, []);
+
   // Modal State
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingMedId, setEditingMedId] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<'medication' | 'routine'>('medication');
   const [selectedMedName, setSelectedMedName] = useState(PRESET_MEDICINES[0].name);
   const [selectedDose, setSelectedDose] = useState('1 Tablet');
   const [selectedTime, setSelectedTime] = useState('08:00');
   const [selectedDays, setSelectedDays] = useState<string[]>(['ALL']);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  const handleSelectType = (type: 'medication' | 'routine') => {
+    setSelectedType(type);
+    if (!editingMedId) {
+      if (type === 'medication') {
+        setSelectedMedName(PRESET_MEDICINES[0].name);
+        setSelectedDose(PRESET_MEDICINES[0].defaultDose);
+      } else {
+        setSelectedMedName(PRESET_ROUTINES[0].name);
+        setSelectedDose(PRESET_ROUTINES[0].defaultDose);
+      }
+    }
+  };
 
   const updateSubscriptionState = useCallback(async () => {
     const proStatus = await SubscriptionService.isPro();
@@ -86,8 +120,10 @@ export const MedicineManagerScreen: React.FC = () => {
       async function syncData() {
         const proStatus = await SubscriptionService.isPro();
         const allMeds = await MedicineRepo.getAllMedicines();
+        const caregiverProfile = await CaregiverRepo.getCaregiver();
         setIsPro(proStatus);
         setMedsCount(allMeds.length);
+        setCaregiver(caregiverProfile);
         await refresh(); // <-- Automatically refresh medication list on tab focus
       }
       syncData();
@@ -116,6 +152,7 @@ export const MedicineManagerScreen: React.FC = () => {
 
   const showAddFormAfterAd = () => {
     setEditingMedId(null);
+    setSelectedType('medication');
     setSelectedMedName(PRESET_MEDICINES[0].name);
     setSelectedDose('1 Tablet');
     setSelectedTime('08:00');
@@ -129,9 +166,11 @@ export const MedicineManagerScreen: React.FC = () => {
     name: string,
     dosage: string,
     time: string,
-    imageUri?: string
+    imageUri?: string,
+    type?: 'medication' | 'routine'
   ) => {
     setEditingMedId(medicineId);
+    setSelectedType(type || 'medication');
     setSelectedMedName(name);
     setSelectedDose(dosage);
     setSelectedTime(time);
@@ -221,8 +260,12 @@ export const MedicineManagerScreen: React.FC = () => {
           reminderTimes: [formattedTime],
           daysOfWeek: selectedDays,
           imageUri: selectedImage,
+          type: selectedType,
         });
-        Alert.alert('Updated', `Prescription "${selectedMedName}" updated!`);
+        Alert.alert(
+          'Updated',
+          `${selectedType === 'routine' ? 'Care Routine' : 'Prescription'} "${selectedMedName}" updated!`
+        );
       } else {
         await MedicineRepo.addMedicine({
           name: selectedMedName.trim(),
@@ -230,14 +273,18 @@ export const MedicineManagerScreen: React.FC = () => {
           reminderTimes: [formattedTime],
           daysOfWeek: selectedDays,
           imageUri: selectedImage,
+          type: selectedType,
         });
-        Alert.alert('Prescription Saved', `Added ${selectedMedName} at ${formattedTime}`);
+        Alert.alert(
+          `${selectedType === 'routine' ? 'Routine Saved' : 'Prescription Saved'}`,
+          `Added ${selectedMedName} at ${formattedTime}`
+        );
       }
       setIsModalVisible(false);
       await updateSubscriptionState();
       await refresh();
     } catch (error) {
-      Alert.alert('Error', 'Could not save medication');
+      Alert.alert('Error', 'Could not save item');
     }
   };
 
@@ -269,7 +316,15 @@ export const MedicineManagerScreen: React.FC = () => {
       {/* 1. TOP HEADER */}
       <View style={styles.topHeader}>
         <View style={styles.headerLeft}>
-          <Text style={styles.subGreeting}>DAILY SCHEDULE</Text>
+          <View style={styles.headerGreetingRow}>
+            <Text style={styles.subGreeting}>DAILY SCHEDULE</Text>
+            <View style={styles.caregiverBadge}>
+              <Feather name="user-check" size={10} color={THEME.colors.royalBlue} />
+              <Text style={styles.caregiverBadgeText} numberOfLines={1}>
+                Caregiver: {caregiver.name}
+              </Text>
+            </View>
+          </View>
           <Text style={styles.mainDateText} numberOfLines={1}>
             {formattedDayTitle}
           </Text>
@@ -291,6 +346,9 @@ export const MedicineManagerScreen: React.FC = () => {
           onSelectDate={(date) => setSelectedDate(date)}
         />
       </View>
+
+      {/* 3. QUICK VITALS BAR (PAWBLOOM DESIGN PATTERN) */}
+      <QuickVitalsBar dateStr={selectedDateStr} />
 
       {/* TWO-COLUMN LAYOUT FOR UNFOLDED Z FOLD / SINGLE COLUMN FOR STANDARD PHONE */}
       <View style={[styles.mainLayoutWrapper, isUnfoldedFold && styles.twoColumnLayout]}>
@@ -328,6 +386,7 @@ export const MedicineManagerScreen: React.FC = () => {
                       dosage={item.dosage}
                       imageUri={item.imageUri}
                       stockCount={item.stockCount}
+                      type={item.type}
                       onRefill={() => handleRefillPress(item.medicineId, item.name)}
                       intakeCount={1}
                       isTaken={item.isTaken}
@@ -346,7 +405,8 @@ export const MedicineManagerScreen: React.FC = () => {
                           item.name,
                           item.dosage,
                           item.scheduledTime,
-                          item.imageUri
+                          item.imageUri,
+                          item.type
                         )
                       }
                     />
@@ -368,19 +428,7 @@ export const MedicineManagerScreen: React.FC = () => {
         )}
       </View>
 
-      {/* 5. FLOATING ACTION BUTTON */}
-      <View style={styles.floatingButtonContainer}>
-        <TouchableOpacity
-          style={styles.floatingActionButton}
-          onPress={openAddModal}
-          activeOpacity={0.85}
-        >
-          <Feather name="plus-circle" size={24} color={THEME.colors.textWhite} style={{ marginRight: 8 }} />
-          <Text style={styles.floatingButtonText}>Add Medication</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* 6. ADD / EDIT PRESCRIPTION MODAL */}
+      {/* 5. ADD / EDIT PRESCRIPTION MODAL */}
       <Modal
         visible={isModalVisible}
         animationType="slide"
@@ -391,21 +439,75 @@ export const MedicineManagerScreen: React.FC = () => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {editingMedId ? 'Edit Prescription' : 'New Prescription'}
+                {editingMedId
+                  ? selectedType === 'routine'
+                    ? 'Edit Care Routine'
+                    : 'Edit Prescription'
+                  : selectedType === 'routine'
+                  ? 'New Care Routine'
+                  : 'New Prescription'}
               </Text>
               <TouchableOpacity onPress={() => setIsModalVisible(false)}>
                 <Feather name="x" size={26} color={THEME.light.textSecondary} />
               </TouchableOpacity>
             </View>
 
+            {/* 2-TAB TYPE SELECTOR */}
+            <View style={styles.typeTabRow}>
+              <TouchableOpacity
+                style={[styles.typeTab, selectedType === 'medication' && styles.typeTabActive]}
+                onPress={() => handleSelectType('medication')}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name="pill"
+                  size={18}
+                  color={selectedType === 'medication' ? '#FFFFFF' : THEME.colors.primary}
+                />
+                <Text
+                  style={[styles.typeTabText, selectedType === 'medication' && styles.typeTabTextActive]}
+                >
+                  Prescription
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.typeTab, selectedType === 'routine' && styles.typeTabActive]}
+                onPress={() => handleSelectType('routine')}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name="heart-pulse"
+                  size={18}
+                  color={selectedType === 'routine' ? '#FFFFFF' : THEME.colors.primary}
+                />
+                <Text
+                  style={[styles.typeTabText, selectedType === 'routine' && styles.typeTabTextActive]}
+                >
+                  Care Routine
+                </Text>
+              </TouchableOpacity>
+            </View>
+
             <ScrollView showsVerticalScrollIndicator={false}>
               {/* 1. MEDICINE NAME & QUICK PRESETS */}
-              <Text style={styles.sectionLabel}>1. MEDICINE NAME</Text>
+              <Text style={styles.sectionLabel}>
+                {selectedType === 'routine' ? '1. ROUTINE / ACTIVITY NAME' : '1. MEDICINE NAME'}
+              </Text>
               <View style={styles.inputWrapper}>
-                <Feather name="edit-3" size={18} color={THEME.colors.primary} style={{ marginRight: 10 }} />
+                <Feather
+                  name={selectedType === 'routine' ? 'activity' : 'edit-3'}
+                  size={18}
+                  color={THEME.colors.primary}
+                  style={{ marginRight: 10 }}
+                />
                 <TextInput
                   style={styles.customTextInput}
-                  placeholder="e.g. Amlodipine, Panadol..."
+                  placeholder={
+                    selectedType === 'routine'
+                      ? 'e.g. Blood Pressure Check, Morning Walk...'
+                      : 'e.g. Amlodipine, Panadol...'
+                  }
                   placeholderTextColor={THEME.light.textMuted}
                   value={selectedMedName}
                   onChangeText={setSelectedMedName}
@@ -417,40 +519,53 @@ export const MedicineManagerScreen: React.FC = () => {
                 )}
               </View>
 
-              <Text style={styles.subLabel}>Or choose quick suggestion:</Text>
+              <Text style={styles.subLabel}>
+                {selectedType === 'routine' ? 'Or choose routine template:' : 'Or choose quick suggestion:'}
+              </Text>
               <View style={styles.medGrid}>
-                {PRESET_MEDICINES.map((med) => {
-                  const isSelected = selectedMedName.toLowerCase() === med.name.toLowerCase();
+                {(selectedType === 'routine' ? PRESET_ROUTINES : PRESET_MEDICINES).map((item) => {
+                  const isSelected = selectedMedName.toLowerCase() === item.name.toLowerCase();
                   return (
                     <TouchableOpacity
-                      key={med.name}
+                      key={item.name}
                       style={[styles.medChip, isSelected && styles.medChipSelected]}
                       onPress={() => {
-                        setSelectedMedName(med.name);
-                        setSelectedDose(med.defaultDose);
+                        setSelectedMedName(item.name);
+                        setSelectedDose(item.defaultDose);
                       }}
                       activeOpacity={0.8}
                     >
                       <MaterialCommunityIcons
-                        name={med.icon as any}
+                        name={item.icon as any}
                         size={20}
                         color={isSelected ? THEME.colors.textWhite : THEME.colors.primary}
                       />
                       <Text style={[styles.medChipText, isSelected && styles.medChipTextSelected]}>
-                        {med.name}
+                        {item.name}
                       </Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
 
-              {/* 2. DOSAGE */}
-              <Text style={styles.sectionLabel}>2. DOSAGE / STRENGTH</Text>
+              {/* 2. DOSAGE / AMOUNT */}
+              <Text style={styles.sectionLabel}>
+                {selectedType === 'routine' ? '2. TARGET / DURATION' : '2. DOSAGE / STRENGTH'}
+              </Text>
               <View style={styles.inputWrapper}>
-                <MaterialCommunityIcons name="pill" size={18} color={THEME.colors.primary} style={{ marginRight: 10 }} />
+                <MaterialCommunityIcons
+                  name={selectedType === 'routine' ? 'target' : 'pill'}
+                  size={18}
+                  color={THEME.colors.primary}
+                  style={{ marginRight: 10 }}
+                />
                 <TextInput
                   style={styles.customTextInput}
-                  placeholder="e.g. 1 Tablet, 500 mg, 10 ml..."
+                  placeholder={
+                    selectedType === 'routine'
+                      ? 'e.g. 1 Reading, 250 ml, 15 Mins...'
+                      : 'e.g. 1 Tablet, 500 mg, 10 ml...'
+                  }
                   placeholderTextColor={THEME.light.textMuted}
                   value={selectedDose}
                   onChangeText={setSelectedDose}
@@ -458,7 +573,7 @@ export const MedicineManagerScreen: React.FC = () => {
               </View>
 
               <View style={styles.chipsRow}>
-                {PRESET_DOSES.map((dose) => {
+                {(selectedType === 'routine' ? PRESET_ROUTINE_DOSES : PRESET_DOSES).map((dose) => {
                   const isSelected = selectedDose === dose;
                   return (
                     <TouchableOpacity
@@ -474,26 +589,30 @@ export const MedicineManagerScreen: React.FC = () => {
                 })}
               </View>
 
-              {/* PILL PHOTO */}
-              <Text style={styles.sectionLabel}>PILL PHOTO (FOR VISUAL RECOGNITION)</Text>
-              <View style={styles.photoPickerRow}>
-                <TouchableOpacity style={styles.photoPickerBtn} onPress={handlePickImage} activeOpacity={0.8}>
-                  {selectedImage ? (
-                    <Image source={{ uri: selectedImage }} style={styles.previewImage} />
-                  ) : (
-                    <View style={styles.placeholderBox}>
-                      <Feather name="camera" size={26} color={THEME.colors.primary} />
-                      <Text style={styles.photoPickerText}>Snap Real Pill</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-                {selectedImage && (
-                  <TouchableOpacity style={styles.removePhotoBtn} onPress={() => setSelectedImage(null)}>
-                    <Feather name="trash-2" size={16} color={THEME.colors.statusSkipped} />
-                    <Text style={styles.removePhotoText}>Remove Photo</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+              {/* PILL PHOTO (ONLY FOR PRESCRIPTION) */}
+              {selectedType === 'medication' && (
+                <>
+                  <Text style={styles.sectionLabel}>PILL PHOTO (FOR VISUAL RECOGNITION)</Text>
+                  <View style={styles.photoPickerRow}>
+                    <TouchableOpacity style={styles.photoPickerBtn} onPress={handlePickImage} activeOpacity={0.8}>
+                      {selectedImage ? (
+                        <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+                      ) : (
+                        <View style={styles.placeholderBox}>
+                          <Feather name="camera" size={26} color={THEME.colors.primary} />
+                          <Text style={styles.photoPickerText}>Snap Real Pill</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                    {selectedImage && (
+                      <TouchableOpacity style={styles.removePhotoBtn} onPress={() => setSelectedImage(null)}>
+                        <Feather name="trash-2" size={16} color={THEME.colors.statusSkipped} />
+                        <Text style={styles.removePhotoText}>Remove Photo</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </>
+              )}
 
               {/* 3. TIME TO TAKE */}
               <Text style={styles.sectionLabel}>3. TIME TO TAKE (24H FORMAT)</Text>
@@ -555,7 +674,13 @@ export const MedicineManagerScreen: React.FC = () => {
                 activeOpacity={0.85}
               >
                 <Text style={styles.saveCtaText}>
-                  {editingMedId ? 'Update Prescription' : 'Save Medication'}
+                  {editingMedId
+                    ? selectedType === 'routine'
+                      ? 'Update Care Routine'
+                      : 'Update Prescription'
+                    : selectedType === 'routine'
+                    ? 'Save Care Routine'
+                    : 'Save Medication'}
                 </Text>
               </TouchableOpacity>
 
@@ -566,7 +691,9 @@ export const MedicineManagerScreen: React.FC = () => {
                   activeOpacity={0.85}
                 >
                   <Feather name="trash-2" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.deleteCtaText}>Delete Prescription</Text>
+                  <Text style={styles.deleteCtaText}>
+                    {selectedType === 'routine' ? 'Delete Care Routine' : 'Delete Prescription'}
+                  </Text>
                 </TouchableOpacity>
               )}
             </ScrollView>
@@ -594,6 +721,28 @@ const styles = StyleSheet.create({
   headerLeft: {
     flex: 1,
     marginRight: 10,
+  },
+  headerGreetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  caregiverBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    gap: 4,
+  },
+  caregiverBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: THEME.colors.royalBlue,
   },
   subGreeting: {
     fontSize: THEME.fontSizes.xs,
@@ -662,7 +811,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 120,
+    paddingBottom: 40,
   },
   centerContainer: {
     alignItems: 'center',
@@ -750,12 +899,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   modalTitle: {
     fontSize: THEME.fontSizes.xl,
     fontWeight: '900',
     color: THEME.light.textPrimary,
+  },
+  typeTabRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+    backgroundColor: '#F1F5F9',
+    padding: 4,
+    borderRadius: 14,
+  },
+  typeTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  typeTabActive: {
+    backgroundColor: THEME.colors.primary,
+    ...THEME.shadows.card,
+  },
+  typeTabText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: THEME.colors.primary,
+  },
+  typeTabTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   sectionLabel: {
     fontSize: THEME.fontSizes.xs,

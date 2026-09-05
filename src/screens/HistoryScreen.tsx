@@ -20,6 +20,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { PdfService } from '../services/pdfService';
 import { SponsoredHealthBanner } from '../components/SponsoredHealthBanner';
 import { AdService } from '../services/admobService';
+import { formatToISODate } from '../utils/dateUtils';
 
 const CARD_PALETTES = [
   '#1E3A8A', // Medical Navy
@@ -55,6 +56,30 @@ export const HistoryScreen: React.FC = () => {
       loadData();
     }, [loadData])
   );
+
+  const handleToggleTodayFromHistory = async (medicineId: string) => {
+    try {
+      const todayStr = formatToISODate(new Date());
+
+      // 1. Ensure logs are generated for today in the database
+      await LogRepo.generateLogsForDate(todayStr);
+
+      // 2. Find the log for this medicine on today's date
+      const todayLogs = await LogRepo.getLogsByDate(todayStr);
+      const targetLog = todayLogs.find((l) => l.medicineId === medicineId);
+
+      if (targetLog) {
+        // 3. Toggle between taken and pending
+        await LogRepo.toggleLogStatus(targetLog.logId, targetLog.status);
+
+        // 4. Reload full history logs to update punch-card matrix
+        const freshLogs = await LogRepo.getAllLogs();
+        setLogs(freshLogs);
+      }
+    } catch (error) {
+      console.error('Error toggling punch-card status:', error);
+    }
+  };
 
   const handleDeleteMedication = (id: string, name: string) => {
     Alert.alert(
@@ -139,10 +164,7 @@ export const HistoryScreen: React.FC = () => {
                   createdAt={med.createdAt}
                   themeColor={color}
                   logs={logs}
-                  onToggleToday={async () => {
-                    const freshLogs = await LogRepo.getAllLogs();
-                    setLogs(freshLogs);
-                  }}
+                  onToggleToday={() => handleToggleTodayFromHistory(med.id)}
                 />
 
                 <TouchableOpacity

@@ -82,6 +82,21 @@ export const DeskModeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* LUXURY FLOATING TOAST NOTIFICATION */}
+      {toastMessage && (
+        <View style={styles.toastContainer}>
+          <View style={styles.toastCard}>
+            <View style={styles.toastIcon}>
+              <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+            </View>
+            <View style={styles.toastTextWrapper}>
+              <Text style={styles.toastTitle}>Prescription Logged</Text>
+              <Text style={styles.toastSub}>{toastMessage}</Text>
+            </View>
+          </View>
+        </View>
+      )}
+
       {/* 1. TOP AMBIENT STATUS BAR */}
       <View style={styles.topBar}>
         <View style={styles.ambientBadge}>
@@ -379,5 +394,47 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
     lineHeight: 18,
+  },
+  toastContainer: {
+    position: 'absolute',
+    top: Platform.OS === 'android' ? (StatusBar.currentHeight || 28) + 16 : 30,
+    left: 20,
+    right: 20,
+    zIndex: 999,
+    alignItems: 'center',
+  },
+  toastCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1.5,
+    borderColor: '#10B981',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 10,
+    width: '100%',
+  },
+  toastIcon: {
+    marginRight: 12,
+  },
+  toastTextWrapper: {
+    flex: 1,
+  },
+  toastTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  toastSub: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginTop: 2,
   },
 });

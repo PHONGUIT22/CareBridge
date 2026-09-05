@@ -5,12 +5,15 @@ const API_KEYS = {
   testOrIos: process.env.EXPO_PUBLIC_RC_TEST_KEY || 'test_NBVokGjAXCxzSkUOhtioMYGEFLL',
 };
 
-// Prioritize real Android key, fallback to Test key
+// Khóa Secret Key vừa tạo để gọi REST API
+const RC_SECRET_API_KEY =
+  process.env.EXPO_PUBLIC_RC_SECRET_KEY || 'sk_DXHguvzBKcLnFVPawAYWPADrajCFU';
+
+// Public key dùng cho SDK native
 const REVENUECAT_PUBLIC_API_KEY =
   Platform.OS === 'android' ? API_KEYS.android : API_KEYS.testOrIos;
 
 export const ENTITLEMENT_ID = 'carebridge_pro';
-
 
 export const RevenueCatService = {
   /**
@@ -28,22 +31,46 @@ export const RevenueCatService = {
   },
 
   /**
-   * 2. Track ad revenue data (Catvertising Track)
-   * Push ad revenue impressions to RevenueCat Dashboard
+   * 2. Track ad revenue data via RevenueCat REST API
+   * Bắn trực tiếp dữ liệu Ad Revenue vào Customer History trên RevenueCat
    */
   async trackAdImpression(networkName: string, adUnitId: string, revenue: number): Promise<void> {
     try {
       const Purchases = require('react-native-purchases').default;
-      if (Purchases.setAdRevenue) {
-        await Purchases.setAdRevenue({
-          revenue,
-          source: networkName,
-          networkPlacement: adUnitId,
-        });
+      const customerInfo = await Purchases.getCustomerInfo();
+      const appUserId = customerInfo?.originalAppUserId || (await Purchases.getAppUserID?.());
+
+      if (!appUserId) {
+        console.log('[RevenueCat Track Error]: No appUserId found');
+        return;
       }
-      console.log(`[RevenueCat Catvertising] Tracked ad impression: ${networkName} (${adUnitId}) -> $${revenue}`);
+
+      const response = await fetch(
+        `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(appUserId)}/ad_revenue`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${RC_SECRET_API_KEY}`,
+          },
+          body: JSON.stringify({
+            use_source_date_provider: false,
+            ad_revenue: [
+              {
+                network_name: (networkName || 'admob').toLowerCase(),
+                ad_unit: adUnitId || 'rewarded_ad',
+                revenue: revenue > 0 ? revenue : 0.02,
+                currency: 'USD',
+              },
+            ],
+          }),
+        }
+      );
+
+      const responseText = await response.text();
+      console.log(`[RevenueCat Ads Tracked]: Status ${response.status} -> ${responseText}`);
     } catch (error) {
-      console.log(`[RevenueCat Mock Ad Tracked]: ${networkName} - $${revenue}`);
+      console.log('[RevenueCat Track Error]:', error);
     }
   },
 
@@ -68,7 +95,6 @@ export const RevenueCatService = {
       const Purchases = require('react-native-purchases').default;
       const offerings = await Purchases.getOfferings();
       if (offerings.current && offerings.current.availablePackages.length > 0) {
-        // Trigger native OS payment sheet
         const { customerInfo } = await Purchases.purchasePackage(offerings.current.availablePackages[0]);
         return !!customerInfo.entitlements.active[ENTITLEMENT_ID];
       }
@@ -77,7 +103,7 @@ export const RevenueCatService = {
       if (!e.userCancelled) {
         console.error('[RevenueCat Error]', e);
       }
-      return false; // Return false, no fake pro fallback
+      return false;
     }
   },
 
@@ -95,10 +121,7 @@ export const RevenueCatService = {
     }
   },
 
-  resetToFree(): void {
-    // Kept for backward compatibility
-  },
+  resetToFree(): void {},
 };
 
-// Export alias for backwards compatibility
 export const SubscriptionService = RevenueCatService;

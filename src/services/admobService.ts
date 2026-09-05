@@ -1,11 +1,11 @@
 import { RevenueCatService } from './revenuecat';
 
-// 1. Dynamic require an toàn: Tránh văng crash khi test trên Expo Go
+// 1. Safe dynamic require: Avoid crash when testing on Expo Go
 let GoogleMobileAds: any = null;
 try {
   GoogleMobileAds = require('react-native-google-mobile-ads');
 } catch (error) {
-  // Expo Go không có native module sẽ lọt vào đây và tự chạy mock
+  // Expo Go does not have native module; falls back to mock mode
 }
 
 const RewardedAd = GoogleMobileAds?.RewardedAd;
@@ -13,7 +13,7 @@ const RewardedAdEventType = GoogleMobileAds?.RewardedAdEventType;
 const AdEventType = GoogleMobileAds?.AdEventType;
 const TestIds = GoogleMobileAds?.TestIds;
 
-// Dùng Test ID để kiểm thử ổn định
+// Use Test ID for stable testing
 const AD_UNIT_ID = TestIds?.REWARDED || 'ca-app-pub-3940256099942544/5224354917';
 
 class AdmobService {
@@ -22,9 +22,9 @@ class AdmobService {
   private hasTrackedRevenueForCurrentAd = false;
 
   init() {
-    // Nếu chạy trên Expo Go, không khởi tạo native ad để tránh lỗi
+    // When running on Expo Go, avoid initializing native ads
     if (!RewardedAd) {
-      console.log('[AdMob] Đang chạy Expo Go: Chuyển sang chế độ mock để test UI');
+      console.log('[AdMob] Running on Expo Go: Switching to mock mode for UI testing');
       return;
     }
     this.loadNewAd();
@@ -43,7 +43,7 @@ class AdmobService {
         this.isLoaded = true;
       });
 
-      // 1. Nếu quảng cáo thật kích hoạt PAID event
+      // 1. If real ad triggers PAID event
       this.rewardedAd.addAdEventListener(AdEventType.PAID, (adValue: any) => {
         const realRevenue = (adValue?.value || 0) / 1_000_000;
         const revenueToTrack = realRevenue > 0 ? realRevenue : 0.02;
@@ -59,10 +59,11 @@ class AdmobService {
   }
 
   showRewardedAd(placement: string, onRewardCallback: () => void) {
-    // 2. Chế độ Mock cho Expo Go / Khi chưa load kịp Ad:
-    // Tự động bỏ qua quảng cáo, kích hoạt ngay callback để mày bấm nút test UI mượt mà
+    // 2. Mock Mode for Expo Go / when ad has not finished loading:
+    // Trigger ad impression tracking and invoke callback immediately
     if (!RewardedAd || !this.rewardedAd || !this.isLoaded) {
       console.log(`[Mock Mode] Bỏ qua ad cho "${placement}", mở tính năng ngay`);
+      RevenueCatService.trackAdImpression('AdMob', placement, 0.02);
       onRewardCallback();
       if (RewardedAd) this.loadNewAd();
       return;

@@ -56,8 +56,8 @@ export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ onAuthenti
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={THEME.colors.background} />
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={THEME.light.background} />
       <KeyboardAvoidingView
         style={styles.keyboardContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -187,9 +187,11 @@ export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ onAuthenti
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
-    backgroundColor: THEME.colors.background,
+    backgroundColor: THEME.light.background,
+    // Safe padding to prevent camera punch-hole and status bar clipping on Android
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 28) + 30 : 20,
   },
   keyboardContainer: {
     flex: 1,
@@ -197,9 +199,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 20 : 36,
+    paddingTop: 10,
     paddingBottom: 30,
-    justifyContent: 'center',
   },
   brandContainer: {
     alignItems: 'center',

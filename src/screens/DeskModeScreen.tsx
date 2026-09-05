@@ -74,8 +74,19 @@ export const DeskModeScreen: React.FC = () => {
     };
   }, [nextPendingPill?.name, nextPendingPill?.dosage]);
 
+  const handleDismissToast = () => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+      toastTimeoutRef.current = null;
+    }
+    setToastMessage(null);
+  };
+
   const handleTakePill = async () => {
     if (!nextPendingPill) return;
+
+    // Silence any active speech announcement immediately
+    Speech.stop();
 
     // Physical haptic feedback
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -97,8 +108,12 @@ export const DeskModeScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       {/* LUXURY FLOATING TOAST NOTIFICATION */}
       {toastMessage && (
-        <View style={styles.toastContainer}>
-          <View style={styles.toastCard}>
+        <View style={styles.toastContainer} pointerEvents="box-none">
+          <TouchableOpacity
+            style={styles.toastCard}
+            activeOpacity={0.9}
+            onPress={handleDismissToast}
+          >
             <View style={styles.toastIcon}>
               <Ionicons name="checkmark-circle" size={20} color="#10B981" />
             </View>
@@ -106,7 +121,8 @@ export const DeskModeScreen: React.FC = () => {
               <Text style={styles.toastTitle}>Prescription Logged</Text>
               <Text style={styles.toastSub}>{toastMessage}</Text>
             </View>
-          </View>
+            <Ionicons name="close" size={18} color="#64748B" style={styles.toastCloseIcon} />
+          </TouchableOpacity>
         </View>
       )}
 
@@ -449,5 +465,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#94A3B8',
     marginTop: 2,
+  },
+  toastCloseIcon: {
+    marginLeft: 8,
   },
 });

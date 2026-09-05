@@ -12,6 +12,7 @@ interface MedicineCardProps {
   takenAt?: string;
   imageUri?: string;
   stockCount?: number;
+  type?: 'medication' | 'routine';
   onRefill?: () => void;
   onToggleTake: () => void;
   onPressCard?: () => void;
@@ -26,6 +27,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
   takenAt,
   imageUri,
   stockCount,
+  type = 'medication',
   onRefill,
   onToggleTake,
   onPressCard,
@@ -77,45 +79,60 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
         )}
 
         <View style={styles.infoCol}>
-          <View style={styles.titleRow}>
-            <Text style={styles.medName} numberOfLines={1}>{name}</Text>
-            {/* Stock inventory count badge */}
-            <TouchableOpacity
-              style={[
-                styles.stockBadge,
-                (stockCount ?? 30) <= 5 ? styles.stockBadgeLow : styles.stockBadgeNormal,
-              ]}
-              onPress={onRefill}
-              activeOpacity={0.7}
-            >
-              <MaterialCommunityIcons
-                name="pill"
-                size={12}
-                color={(stockCount ?? 30) <= 5 ? '#DC2626' : THEME.colors.primary}
-              />
-              <Text
+          {/* Display title up to 2 lines without truncating or overlapping */}
+          <Text style={styles.medName} numberOfLines={2}>
+            {name}
+          </Text>
+
+          {/* Sub-row containing badge and edit icon */}
+          <View style={styles.subBadgeRow}>
+            {type === 'routine' ? (
+              <View style={[styles.stockBadge, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}>
+                <MaterialCommunityIcons name="heart-pulse" size={12} color={THEME.colors.primary} />
+                <Text style={[styles.stockText, { color: THEME.colors.primary }]}>Routine</Text>
+              </View>
+            ) : (
+              <TouchableOpacity
                 style={[
-                  styles.stockText,
-                  (stockCount ?? 30) <= 5 ? styles.stockTextLow : styles.stockTextNormal,
+                  styles.stockBadge,
+                  (stockCount ?? 30) <= 5 ? styles.stockBadgeLow : styles.stockBadgeNormal,
                 ]}
+                onPress={onRefill}
+                activeOpacity={0.7}
               >
-                {(stockCount ?? 30) <= 5 ? `${stockCount ?? 0} left (Refill)` : `${stockCount ?? 30} pills`}
-              </Text>
-            </TouchableOpacity>
-            <Feather name="edit-2" size={14} color={THEME.light.textMuted} style={{ marginLeft: 6 }} />
+                <MaterialCommunityIcons
+                  name="pill"
+                  size={12}
+                  color={(stockCount ?? 30) <= 5 ? '#DC2626' : THEME.colors.primary}
+                />
+                <Text
+                  style={[
+                    styles.stockText,
+                    (stockCount ?? 30) <= 5 ? styles.stockTextLow : styles.stockTextNormal,
+                  ]}
+                >
+                  {(stockCount ?? 30) <= 5 ? `${stockCount ?? 0} left (Refill)` : `${stockCount ?? 30} pills`}
+                </Text>
+              </TouchableOpacity>
+            )}
+            <Feather name="edit-2" size={13} color={THEME.light.textMuted} style={{ marginLeft: 6 }} />
           </View>
 
           <Text style={styles.dosageText}>
-            {dosage} • Take {intakeCount} pill{intakeCount > 1 ? 's' : ''}
+            {type === 'routine' ? dosage : `${dosage} • Take ${intakeCount} pill${intakeCount > 1 ? 's' : ''}`}
           </Text>
 
           {/* STATUS LABEL */}
           {isTaken ? (
-            <Text style={styles.takenLabel}>Taken at {takenAt || 'scheduled time'}</Text>
+            <Text style={styles.takenLabel}>
+              {type === 'routine' ? `Completed at ${takenAt || 'scheduled time'}` : `Taken at ${takenAt || 'scheduled time'}`}
+            </Text>
           ) : isFuture ? (
             <Text style={styles.futureLabel}>Scheduled (Upcoming)</Text>
           ) : (
-            <Text style={styles.notTakenLabel}>Not taken</Text>
+            <Text style={styles.notTakenLabel}>
+              {type === 'routine' ? 'Not completed' : 'Not taken'}
+            </Text>
           )}
         </View>
       </TouchableOpacity>
@@ -134,11 +151,11 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
         ) : isTaken ? (
           <TouchableOpacity style={styles.unTakeBtn} onPress={onToggleTake} activeOpacity={0.7}>
             <Ionicons name="refresh" size={16} color={THEME.light.textSecondary} style={{ marginRight: 4 }} />
-            <Text style={styles.unTakeText}>Un-take</Text>
+            <Text style={styles.unTakeText}>{type === 'routine' ? 'Undo' : 'Un-take'}</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.takeBtn} onPress={onToggleTake} activeOpacity={0.8}>
-            <Text style={styles.takeText}>Take</Text>
+            <Text style={styles.takeText}>{type === 'routine' ? 'Done' : 'Take'}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -184,6 +201,11 @@ const styles = StyleSheet.create({
   infoCol: {
     flex: 1,
   },
+  subBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 3,
+  },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -194,8 +216,6 @@ const styles = StyleSheet.create({
     fontSize: THEME.fontSizes.lg,
     fontWeight: '800',
     color: THEME.light.textPrimary,
-    flexShrink: 1, // Shrink or truncate medicine name instead of pushing other icons
-    marginRight: 6, // Spacing with stock badge
   },
   dosageText: {
     fontSize: THEME.fontSizes.sm,

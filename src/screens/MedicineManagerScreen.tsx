@@ -30,6 +30,7 @@ import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SubscriptionService } from '../services/revenuecat';
 import { AdService } from '../services/admobService';
 import { formatToISODate } from '../utils/dateUtils';
+import { CustomAlertModal, AlertType } from '../components/CustomAlertModal';
 
 const PRESET_MEDICINES = [
   { name: 'Blood Pressure', icon: 'heart-pulse', defaultDose: '1 Tablet' },
@@ -94,6 +95,26 @@ export const MedicineManagerScreen: React.FC = () => {
   const [selectedTime, setSelectedTime] = useState('08:00');
   const [selectedDays, setSelectedDays] = useState<string[]>(['ALL']);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  // Custom Alert Modal State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: AlertType;
+    confirmText?: string;
+    cancelText?: string;
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: () => {},
+  });
+
+  const closeAlert = () => setAlertConfig((prev) => ({ ...prev, visible: false }));
 
   const handleSelectType = (type: 'medication' | 'routine') => {
     setSelectedType(type);
@@ -243,11 +264,25 @@ export const MedicineManagerScreen: React.FC = () => {
 
   const handleSaveMedicine = async () => {
     if (!selectedMedName.trim()) {
-      Alert.alert('Missing Name', 'Please enter or select a medication name.');
+      setAlertConfig({
+        visible: true,
+        title: 'Missing Name',
+        message: 'Please enter or choose a medication name before saving.',
+        type: 'warning',
+        confirmText: 'Got It',
+        onConfirm: closeAlert,
+      });
       return;
     }
     if (!selectedDose.trim()) {
-      Alert.alert('Missing Dosage', 'Please enter or select a dosage.');
+      setAlertConfig({
+        visible: true,
+        title: 'Missing Dosage',
+        message: 'Please specify the dosage or target amount.',
+        type: 'warning',
+        confirmText: 'Got It',
+        onConfirm: closeAlert,
+      });
       return;
     }
 
@@ -256,7 +291,6 @@ export const MedicineManagerScreen: React.FC = () => {
     if (!formattedTime.includes(':')) {
       formattedTime = `${formattedTime}:00`;
     }
-
     try {
       if (editingMedId) {
         await MedicineRepo.updateMedicine(editingMedId, {
@@ -267,10 +301,6 @@ export const MedicineManagerScreen: React.FC = () => {
           imageUri: selectedImage,
           type: selectedType,
         });
-        Alert.alert(
-          'Updated',
-          `${selectedType === 'routine' ? 'Care Routine' : 'Prescription'} "${selectedMedName}" updated!`
-        );
       } else {
         await MedicineRepo.addMedicine({
           name: selectedMedName.trim(),
@@ -280,40 +310,40 @@ export const MedicineManagerScreen: React.FC = () => {
           imageUri: selectedImage,
           type: selectedType,
         });
-        Alert.alert(
-          `${selectedType === 'routine' ? 'Routine Saved' : 'Prescription Saved'}`,
-          `Added ${selectedMedName} at ${formattedTime}`
-        );
       }
       setIsModalVisible(false);
       await updateSubscriptionState();
       await refresh();
     } catch (error) {
-      Alert.alert('Error', 'Could not save item');
+      setAlertConfig({
+        visible: true,
+        title: 'Storage Error',
+        message: 'Could not save item to local database.',
+        type: 'danger',
+        confirmText: 'Close',
+        onConfirm: closeAlert,
+      });
     }
   };
 
   const handleDeleteMedicine = () => {
     if (!editingMedId) return;
-
-    Alert.alert(
-      'Delete Prescription',
-      `Are you sure you want to permanently delete "${selectedMedName}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            await MedicineRepo.deleteMedicine(editingMedId);
-            setIsModalVisible(false);
-            await updateSubscriptionState();
-            await refresh();
-            Alert.alert('Deleted', `"${selectedMedName}" has been removed.`);
-          },
-        },
-      ]
-    );
+    setAlertConfig({
+      visible: true,
+      title: 'Delete Prescription',
+      message: `Are you sure you want to permanently delete "${selectedMedName}"?`,
+      type: 'danger',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        await MedicineRepo.deleteMedicine(editingMedId);
+        setIsModalVisible(false);
+        closeAlert();
+        await updateSubscriptionState();
+        await refresh();
+      },
+      onCancel: closeAlert,
+    });
   };
 
   return (
@@ -706,6 +736,17 @@ export const MedicineManagerScreen: React.FC = () => {
         </View>
       </Modal>
 
+      {/* Luxury alert and confirmation modal */}
+      <CustomAlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        confirmText={alertConfig.confirmText}
+        cancelText={alertConfig.cancelText}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,16 @@ import { announceMedication } from '../services/speechService';
 export const DeskModeScreen: React.FC = () => {
   const [logs, setLogs] = useState<DailyLogItem[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Clean up any pending toast timer on unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Automatically reload today's doses whenever the tab is focused
   const loadTodayLogs = useCallback(async () => {
@@ -73,9 +83,12 @@ export const DeskModeScreen: React.FC = () => {
     await LogRepo.toggleLogStatus(nextPendingPill.logId, nextPendingPill.status);
     await loadTodayLogs();
 
-    // Trigger non-blocking toast notification
+    // Trigger non-blocking toast notification with managed timeout
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
     setToastMessage(`Marked ${nextPendingPill.name} as taken!`);
-    setTimeout(() => {
+    toastTimeoutRef.current = setTimeout(() => {
       setToastMessage(null);
     }, 2200);
   };

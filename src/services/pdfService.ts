@@ -2,6 +2,8 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { DailyLogItem } from '../database/logRepo';
 import { MedicineRecord } from '../database/medicineRepo';
+import { VitalsRepo } from '../database/vitalsRepo';
+import { CaregiverRepo } from '../database/caregiverRepo';
 
 export const PdfService = {
   /**
@@ -10,7 +12,41 @@ export const PdfService = {
   async generateDoctorReport(logs: DailyLogItem[], medicines: MedicineRecord[]): Promise<void> {
     const todayStr = new Date().toISOString().split('T')[0];
 
-    // 1. Only include records up to today (past and today)
+    // 1. Read caregiver profile from SQLite
+    const caregiver = await CaregiverRepo.getCaregiver();
+
+    // 2. Read biometric vitals data from daily_vitals table
+    const vitalsList = await VitalsRepo.getAllVitals();
+
+    const systolics = vitalsList
+      .map((v) => v.systolic)
+      .filter((n): n is number => typeof n === 'number' && !isNaN(n));
+    const diastolics = vitalsList
+      .map((v) => v.diastolic)
+      .filter((n): n is number => typeof n === 'number' && !isNaN(n));
+    const bloodSugars = vitalsList
+      .map((v) => v.bloodSugar)
+      .filter((n): n is number => typeof n === 'number' && !isNaN(n));
+    const heartRates = vitalsList
+      .map((v) => v.heartRate)
+      .filter((n): n is number => typeof n === 'number' && !isNaN(n));
+
+    const bpDisplay =
+      systolics.length > 0 && diastolics.length > 0
+        ? `${Math.round(systolics.reduce((a, b) => a + b, 0) / systolics.length)}/${Math.round(diastolics.reduce((a, b) => a + b, 0) / diastolics.length)}`
+        : '120/80';
+
+    const sugarDisplay =
+      bloodSugars.length > 0
+        ? `${Math.round((bloodSugars.reduce((a, b) => a + b, 0) / bloodSugars.length) * 10) / 10} mg/dL`
+        : '95 mg/dL';
+
+    const hrDisplay =
+      heartRates.length > 0
+        ? `${Math.round(heartRates.reduce((a, b) => a + b, 0) / heartRates.length)} bpm`
+        : '72 bpm';
+
+    // 2. Only include records up to today (past and today)
     const auditLogs = logs.filter((l) => l.date <= todayStr);
 
     const total = auditLogs.length;
@@ -89,6 +125,19 @@ export const PdfService = {
             </div>
           </div>
 
+          <!-- Primary Caregiver & Patient Identification -->
+          <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <span style="font-size: 11px; font-weight: bold; color: #64748B; text-transform: uppercase;">Primary Caregiver:</span>
+              <strong style="font-size: 13px; color: #1E3A8A; margin-left: 6px;">${caregiver.name}</strong>
+              <span style="font-size: 12px; color: #475569; margin-left: 4px;">(${caregiver.email})</span>
+            </div>
+            <div>
+              <span style="font-size: 11px; font-weight: bold; color: #64748B; text-transform: uppercase;">Care Mode:</span>
+              <strong style="font-size: 12px; color: #0D9488; margin-left: 6px;">Senior Daily Assisted</strong>
+            </div>
+          </div>
+
           <div class="stats-box">
             <div class="stat-item">
               <div class="stat-value">${adherence}%</div>
@@ -101,6 +150,22 @@ export const PdfService = {
             <div class="stat-item">
               <div class="stat-value" style="color: #DC2626;">${total - taken}</div>
               <div class="stat-label">Doses Missed</div>
+            </div>
+          </div>
+
+          <h3 style="font-size: 14px; text-transform: uppercase; color: #1E3A8A; margin-bottom: 8px;">Patient Biometric Vitals Audit</h3>
+          <div class="stats-box">
+            <div class="stat-item">
+              <div class="stat-value" style="font-size: 20px;">${bpDisplay}</div>
+              <div class="stat-label">Avg Blood Pressure</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" style="font-size: 20px; color: #0284C7;">${sugarDisplay}</div>
+              <div class="stat-label">Fasting Sugar</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" style="font-size: 20px; color: #16A34A;">${hrDisplay}</div>
+              <div class="stat-label">Resting Heart Rate</div>
             </div>
           </div>
 

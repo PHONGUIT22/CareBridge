@@ -22,12 +22,11 @@ import { SponsoredHealthBanner } from '../components/SponsoredHealthBanner';
 import { AdService } from '../services/admobService';
 
 const CARD_PALETTES = [
-  '#EA580C', // Orange
-  '#7C3AED', // Purple
-  '#059669', // Emerald green
-  '#0284C7', // Ocean blue
-  '#D97706', // Warm amber
-  '#1E3A8A', // Navy
+  '#1E3A8A', // Medical Navy
+  '#0D9488', // Deep Teal
+  '#0284C7', // Clinical Blue
+  '#334155', // Slate Steel
+  '#047857', // Forest Emerald
 ];
 
 export const HistoryScreen: React.FC = () => {
@@ -98,7 +97,7 @@ export const HistoryScreen: React.FC = () => {
       {/* 1. TOP HEADER */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerSub}>HABITBOX COMPLIANCE MATRIX</Text>
+          <Text style={styles.headerSub}>CAREBRIDGE COMPLIANCE MATRIX</Text>
           <Text style={styles.headerTitle}>Medication History</Text>
         </View>
 

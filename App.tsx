@@ -14,14 +14,14 @@ export default function App() {
   const [dbError, setDbError] = useState<string | null>(null);
 
   useEffect(() => {
+    // 1. Initialize RevenueCat & AdMob SDKs immediately on app startup
+    RevenueCatService.init();
     AdService.init();
 
+    // 2. Bootstrap local SQLite database
     async function bootstrapDatabase() {
       try {
-        await Promise.all([
-          initDB(),
-          RevenueCatService.init(), // <-- Initialize RevenueCat on app startup
-        ]);
+        await initDB();
         setIsDbReady(true);
       } catch (error) {
         console.error('Database bootstrap error:', error);

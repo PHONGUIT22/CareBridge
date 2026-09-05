@@ -21,6 +21,7 @@ import { PdfService } from '../services/pdfService';
 import { SponsoredHealthBanner } from '../components/SponsoredHealthBanner';
 import { AdService } from '../services/admobService';
 import { formatToISODate } from '../utils/dateUtils';
+import { CustomAlertModal } from '../components/CustomAlertModal';
 
 const CARD_PALETTES = [
   '#1E3A8A', // Medical Navy
@@ -34,6 +35,7 @@ export const HistoryScreen: React.FC = () => {
   const [logs, setLogs] = useState<DailyLogItem[]>([]);
   const [medicines, setMedicines] = useState<MedicineRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [deletingMed, setDeletingMed] = useState<{ id: string; name: string } | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -82,21 +84,15 @@ export const HistoryScreen: React.FC = () => {
   };
 
   const handleDeleteMedication = (id: string, name: string) => {
-    Alert.alert(
-      'Delete Punch-Card',
-      `Are you sure you want to permanently delete "${name}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            await MedicineRepo.deleteMedicine(id);
-            await loadData();
-          },
-        },
-      ]
-    );
+    // Trigger custom modal instead of Alert.alert
+    setDeletingMed({ id, name });
+  };
+
+  const executeRealDelete = async () => {
+    if (!deletingMed) return;
+    await MedicineRepo.deleteMedicine(deletingMed.id);
+    setDeletingMed(null);
+    await loadData();
   };
 
   const handleExportPDF = () => {
@@ -183,6 +179,17 @@ export const HistoryScreen: React.FC = () => {
         <SponsoredHealthBanner placement="history_footer" />
       </ScrollView>
 
+      {/* Luxury delete confirmation modal */}
+      <CustomAlertModal
+        visible={deletingMed !== null}
+        title="Delete Punch-Card"
+        message={`Are you sure you want to permanently delete "${deletingMed?.name}" and all historical streaks?`}
+        type="danger"
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={executeRealDelete}
+        onCancel={() => setDeletingMed(null)}
+      />
     </SafeAreaView>
   );
 };

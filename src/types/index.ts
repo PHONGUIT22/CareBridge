@@ -11,6 +11,7 @@ export interface Medicine {
   createdAt: string;
   imageUri?: string;
   stockCount?: number;
+  type?: 'medication' | 'routine';
 }
 
 export interface IntakeLog {
@@ -35,6 +36,7 @@ export interface DailyLogItem {
   takenAt?: string;
   imageUri?: string;
   stockCount?: number;
+  type?: 'medication' | 'routine';
 }
 
 export interface TimeGroup {

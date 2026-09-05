@@ -8,6 +8,7 @@ export interface MedicineInput {
   daysOfWeek: string[];    // e.g. ["MON", "WED", "FRI"] or ["ALL"]
   imageUri?: string | null;
   stockCount?: number;
+  type?: 'medication' | 'routine';
 }
 
 export interface MedicineRecord {
@@ -18,6 +19,7 @@ export interface MedicineRecord {
   daysOfWeek: string[];
   stockCount: number;
   imageUri?: string;
+  type?: 'medication' | 'routine';
   createdAt: string;
 }
 
@@ -28,8 +30,8 @@ export const MedicineRepo = {
     const createdAt = new Date().toISOString();
 
     await db.runAsync(
-      `INSERT INTO medicines (id, name, dosage, reminder_times, days_of_week, image_uri, stock_count, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO medicines (id, name, dosage, reminder_times, days_of_week, image_uri, stock_count, type, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         input.name.trim(),
@@ -38,6 +40,7 @@ export const MedicineRepo = {
         JSON.stringify(input.daysOfWeek),
         input.imageUri || null,
         input.stockCount ?? 30,
+        input.type || 'medication',
         createdAt,
       ]
     );
@@ -49,7 +52,7 @@ export const MedicineRepo = {
     const db = await getDatabase();
     await db.runAsync(
       `UPDATE medicines 
-       SET name = ?, dosage = ?, reminder_times = ?, days_of_week = ?, image_uri = ? 
+       SET name = ?, dosage = ?, reminder_times = ?, days_of_week = ?, image_uri = ?, type = COALESCE(?, type)
        WHERE id = ?`,
       [
         input.name.trim(),
@@ -57,6 +60,7 @@ export const MedicineRepo = {
         JSON.stringify(input.reminderTimes),
         JSON.stringify(input.daysOfWeek),
         input.imageUri || null,
+        input.type || null,
         id,
       ]
     );
@@ -104,6 +108,7 @@ export const MedicineRepo = {
       days_of_week: string;
       image_uri: string | null;
       stock_count: number | null;
+      type: string | null;
       created_at: string;
     }>('SELECT * FROM medicines ORDER BY created_at DESC');
 
@@ -115,6 +120,7 @@ export const MedicineRepo = {
       daysOfWeek: JSON.parse(row.days_of_week || '[]'),
       imageUri: row.image_uri || undefined,
       stockCount: row.stock_count ?? 30,
+      type: (row.type as 'medication' | 'routine') || 'medication',
       createdAt: row.created_at,
     }));
   },

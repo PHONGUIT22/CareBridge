@@ -20,6 +20,7 @@ export async function initDB(): Promise<SQLite.SQLiteDatabase> {
       days_of_week TEXT NOT NULL,
       image_uri TEXT,
       stock_count INTEGER DEFAULT 30,
+      type TEXT DEFAULT 'medication',
       created_at TEXT NOT NULL
     );
 
@@ -32,6 +33,22 @@ export async function initDB(): Promise<SQLite.SQLiteDatabase> {
       taken_at TEXT,
       created_at TEXT NOT NULL,
       FOREIGN KEY (medicine_id) REFERENCES medicines(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS daily_vitals (
+      date TEXT PRIMARY KEY NOT NULL,
+      systolic INTEGER,
+      diastolic INTEGER,
+      blood_sugar REAL,
+      heart_rate INTEGER,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS caregiver_profile (
+      id TEXT PRIMARY KEY NOT NULL,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      updated_at TEXT NOT NULL
     );
 
     CREATE UNIQUE INDEX IF NOT EXISTS idx_log_unique ON intake_logs(medicine_id, date, time);
@@ -48,6 +65,13 @@ export async function initDB(): Promise<SQLite.SQLiteDatabase> {
   // Automatically add column if existing database does not have stock_count yet
   try {
     await dbInstance.execAsync(`ALTER TABLE medicines ADD COLUMN stock_count INTEGER DEFAULT 30;`);
+  } catch (e) {
+    // Column already exists, safe to ignore
+  }
+
+  // Automatic migration if existing database does not have type column yet
+  try {
+    await dbInstance.execAsync(`ALTER TABLE medicines ADD COLUMN type TEXT DEFAULT 'medication';`);
   } catch (e) {
     // Column already exists, safe to ignore
   }

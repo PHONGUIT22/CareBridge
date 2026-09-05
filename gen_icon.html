@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>CareBridge Adaptive Icon Fix</title></head>
+<body style="display:flex; flex-direction:column; align-items:center; padding:30px; background:#0b0f19; color:#fff; font-family:sans-serif;">
+  <h2>Adaptive Icon (Thu nhỏ chuẩn Safe Zone)</h2>
+  
+  <canvas id="cAdaptive" width="1024" height="1024" style="width:200px; height:200px; background: #1E3A8A; border-radius: 50%; border: 2px dashed #38BDF8; margin: 20px;"></canvas>
+  
+  <button id="btn" style="padding: 12px 24px; font-size:15px; font-weight:bold; background:#10B981; color:#fff; border:none; border-radius:8px; cursor:pointer;">
+    Tải adaptive-icon.png chuẩn
+  </button>
+
+  <script>
+    const canvas = document.getElementById('cAdaptive');
+    const ctx = canvas.getContext('2d');
+
+    // NỀN TRONG SUỐT HOÀN TOÀN (Nền màu để app.json lo)
+    ctx.clearRect(0, 0, 1024, 1024);
+
+    // Tỉ lệ scale = 0.65 để quả tim nằm gọn 100% trong vòng tròn 660px ở giữa
+    const cx = 512;
+    const cy = 512;
+    const s = 0.68;
+
+    // Vẽ Trái Tim Trắng
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + 240 * s);
+    ctx.bezierCurveTo(cx - 320 * s, cy + 80 * s, cx - 360 * s, cy - 140 * s, cx - 180 * s, cy - 200 * s);
+    ctx.bezierCurveTo(cx - 70 * s, cy - 235 * s, cx, cy - 120 * s, cx, cy - 100 * s);
+    ctx.bezierCurveTo(cx, cy - 120 * s, cx + 70 * s, cy - 235 * s, cx + 180 * s, cy - 200 * s);
+    ctx.bezierCurveTo(cx + 360 * s, cy - 140 * s, cx + 320 * s, cy + 80 * s, cx, cy + 240 * s);
+    ctx.fill();
+
+    // Vẽ đường cắt Nhịp Tim
+    ctx.strokeStyle = '#1E3A8A';
+    ctx.lineWidth = 38 * s;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx - 250 * s, cy - 10 * s);
+    ctx.lineTo(cx - 95 * s, cy - 10 * s);
+    ctx.lineTo(cx - 40 * s, cy - 110 * s);
+    ctx.lineTo(cx + 20 * s, cy + 95 * s);
+    ctx.lineTo(cx + 75 * s, cy - 50 * s);
+    ctx.lineTo(cx + 115 * s, cy - 10 * s);
+    ctx.lineTo(cx + 250 * s, cy - 10 * s);
+    ctx.stroke();
+
+    document.getElementById('btn').onclick = () => {
+      const a = document.createElement('a');
+      a.download = 'adaptive-icon.png';
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    };
+  </script>
+</body>
+</html>

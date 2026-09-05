@@ -22,17 +22,18 @@ import { announceMedication } from '../services/speechService';
 
 export const DeskModeScreen: React.FC = () => {
   const [logs, setLogs] = useState<DailyLogItem[]>([]);
-  const todayStr = formatToISODate(new Date());
 
   // Automatically reload today's doses whenever the tab is focused
   const loadTodayLogs = useCallback(async () => {
     try {
-      const data = await LogRepo.getLogsByDate(todayStr);
+      // Always get the latest date at the moment the screen is focused
+      const currentTodayStr = formatToISODate(new Date());
+      const data = await LogRepo.getLogsByDate(currentTodayStr);
       setLogs(data);
     } catch (e) {
       console.error(e);
     }
-  }, [todayStr]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {

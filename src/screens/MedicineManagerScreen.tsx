@@ -137,9 +137,7 @@ export const MedicineManagerScreen: React.FC = () => {
   });
 
   const openAddModal = () => {
-    AdService.showRewardedAd('add_prescription', () => {
-      showAddFormAfterAd();
-    });
+    showAddFormAfterAd();
   };
 
   const handleRefillPress = (medicineId: string, name: string) => {

@@ -67,9 +67,17 @@ export const DeskModeScreen: React.FC = () => {
   const handleTakePill = async () => {
     if (!nextPendingPill) return;
 
+    // Physical haptic feedback
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
     await LogRepo.toggleLogStatus(nextPendingPill.logId, nextPendingPill.status);
     await loadTodayLogs();
-    Alert.alert('Prescription Logged', `Marked ${nextPendingPill.name} as taken!`);
+
+    // Trigger non-blocking toast notification
+    setToastMessage(`Marked ${nextPendingPill.name} as taken!`);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 2200);
   };
 
   return (

@@ -5,6 +5,7 @@ import { THEME } from '../constants/theme';
 import { MedicineManagerScreen } from '../screens/MedicineManagerScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { DeskModeScreen } from '../screens/DeskModeScreen';
+import { EditorialHeroScreen } from '../screens/EditorialHeroScreen';
 import { AuthWelcomeScreen } from '../screens/AuthWelcomeScreen';
 import { useFlexMode } from '../hooks/useFlexMode';
 import { Feather, Ionicons } from '@expo/vector-icons';
@@ -18,15 +19,26 @@ export type RootTabParamList = {
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
 export const AppNavigator: React.FC = () => {
+  const [hasSeenHero, setHasSeenHero] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { isFlexMode } = useFlexMode();
 
-  // 1. Render AuthWelcomeScreen if not yet authenticated
-  if (!isAuthenticated) {
-    return <AuthWelcomeScreen onAuthenticate={() => setIsAuthenticated(true)} />;
+  // 1. Editorial Welcome Hero Screen (PawBloom aesthetic)
+  if (!hasSeenHero) {
+    return <EditorialHeroScreen onGetStarted={() => setHasSeenHero(true)} />;
   }
 
-  // 2. Automatically enlarge clock when folded 90 degrees or in landscape mode
+  // 2. Caregiver Portal / Sign In & Guest Access Screen
+  if (!isAuthenticated) {
+    return (
+      <AuthWelcomeScreen
+        onAuthenticate={() => setIsAuthenticated(true)}
+        onContinue={() => setIsAuthenticated(true)}
+      />
+    );
+  }
+
+  // 3. Automatically enlarge clock when folded 90 degrees or in landscape mode
   if (isFlexMode) {
     return (
       <View style={styles.flexContainer}>

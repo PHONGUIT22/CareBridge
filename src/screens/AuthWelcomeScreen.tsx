@@ -17,13 +17,16 @@ import { CaregiverRepo } from '../database/caregiverRepo';
 import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 
 interface AuthWelcomeScreenProps {
-  onAuthenticate: () => void;
+  onAuthenticate?: () => void;
+  onContinue?: () => void;
 }
 
-export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ onAuthenticate }) => {
+export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ onAuthenticate, onContinue }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleComplete = onAuthenticate || onContinue || (() => {});
 
   // Handle email sign-in
   const handleEmailSignIn = async () => {
@@ -45,14 +48,14 @@ export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ onAuthenti
 
     setTimeout(() => {
       setIsSubmitting(false);
-      onAuthenticate();
+      handleComplete();
     }, 300);
   };
 
   // Handle guest caregiver sign-in (allows instant offline access)
   const handleGuestSignIn = async () => {
     await CaregiverRepo.saveCaregiver('', 'Family Caregiver');
-    onAuthenticate();
+    handleComplete();
   };
 
   return (

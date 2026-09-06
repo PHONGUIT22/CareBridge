@@ -19,6 +19,7 @@ import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from '@react-navigation/native';
 import { THEME } from '../constants/theme';
 import { CalendarStrip } from '../components/CalendarStrip';
+import { FullMonthCalendarModal } from '../components/FullMonthCalendarModal';
 import { MedicineCard } from '../components/MedicineCard';
 import { SeniorClock } from '../components/SeniorClock';
 import { QuickVitalsBar } from '../components/QuickVitalsBar';
@@ -78,6 +79,7 @@ export const MedicineManagerScreen: React.FC = () => {
   const [isPro, setIsPro] = useState(false);
   const [medsCount, setMedsCount] = useState(0);
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
+  const [isMonthModalOpen, setIsMonthModalOpen] = useState(false);
 
   // Caregiver Profile State (synced from local SQLite)
   const [caregiver, setCaregiver] = useState<CaregiverProfile>(() => CaregiverRepo.getCaregiverSync());
@@ -458,6 +460,7 @@ export const MedicineManagerScreen: React.FC = () => {
         <CalendarStrip
           selectedDate={selectedDate}
           onSelectDate={(date) => setSelectedDate(date)}
+          onOpenMonthModal={() => setIsMonthModalOpen(true)}
         />
       </View>
 
@@ -869,6 +872,17 @@ export const MedicineManagerScreen: React.FC = () => {
         </View>
       </Modal>
 
+      {/* Full-Month Calendar Modal */}
+      <FullMonthCalendarModal
+        visible={isMonthModalOpen}
+        currentDate={selectedDate}
+        onSelectDate={(date) => {
+          setSelectedDate(date);
+          setIsMonthModalOpen(false);
+        }}
+        onClose={() => setIsMonthModalOpen(false)}
+      />
+
       {/* Paywall modal */}
       <PaywallModal
         visible={isPaywallOpen}
@@ -1047,6 +1061,22 @@ const styles = StyleSheet.create({
   },
   calendarContainer: {
     marginBottom: 4,
+  },
+  calendarPickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+  },
+  calendarPickerText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E3A8A',
   },
   scrollContent: {
     paddingHorizontal: 16,

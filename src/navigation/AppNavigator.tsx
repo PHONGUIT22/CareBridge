@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { StyleSheet, Platform, View } from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { StyleSheet, Platform, View, TouchableOpacity } from 'react-native';
+import { createBottomTabNavigator, BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import { THEME } from '../constants/theme';
 import { MedicineManagerScreen } from '../screens/MedicineManagerScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
@@ -9,7 +9,7 @@ import { DeskModeScreen } from '../screens/DeskModeScreen';
 import { EditorialHeroScreen } from '../screens/EditorialHeroScreen';
 import { AuthWelcomeScreen } from '../screens/AuthWelcomeScreen';
 import { useFlexMode } from '../hooks/useFlexMode';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 
 export type RootTabParamList = {
   Today: undefined;
@@ -19,6 +19,24 @@ export type RootTabParamList = {
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
+
+const SeniorFriendlyTabButton: React.FC<BottomTabBarButtonProps> = (props: any) => {
+  const focused = props.accessibilityState?.selected;
+  const { delayLongPress, style, children, ...restProps } = props;
+  return (
+    <TouchableOpacity
+      {...restProps}
+      activeOpacity={0.7}
+      style={[
+        style,
+        styles.tabBarButton,
+        focused && styles.tabBarButtonFocused,
+      ]}
+    >
+      {children}
+    </TouchableOpacity>
+  );
+};
 
 export const AppNavigator: React.FC = () => {
   const [hasSeenHero, setHasSeenHero] = useState(false);
@@ -49,17 +67,17 @@ export const AppNavigator: React.FC = () => {
     );
   }
 
-  // 2. Standard 3-tab layout
+  // 2. Standard senior-friendly 4-tab layout
   return (
     <Tab.Navigator
       initialRouteName="Today"
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: THEME.colors.primary,
-        tabBarInactiveTintColor: THEME.light.textMuted,
+        tabBarActiveTintColor: '#1E3A8A',
+        tabBarInactiveTintColor: '#64748B',
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabBarLabel,
-        tabBarItemStyle: styles.tabBarItem,
+        tabBarButton: (props) => <SeniorFriendlyTabButton {...props} />,
       }}
     >
       {/* TAB 1: TODAY SCHEDULE */}
@@ -71,7 +89,7 @@ export const AppNavigator: React.FC = () => {
           tabBarIcon: ({ color, focused }: { color: string; size: number; focused: boolean }) => (
             <Ionicons
               name={focused ? 'calendar' : 'calendar-outline'}
-              size={24}
+              size={26}
               color={color}
             />
           ),
@@ -87,7 +105,7 @@ export const AppNavigator: React.FC = () => {
           tabBarIcon: ({ color, focused }: { color: string; size: number; focused: boolean }) => (
             <Ionicons
               name={focused ? 'grid' : 'grid-outline'}
-              size={24}
+              size={26}
               color={color}
             />
           ),
@@ -103,7 +121,7 @@ export const AppNavigator: React.FC = () => {
           tabBarIcon: ({ color, focused }: { color: string; size: number; focused: boolean }) => (
             <Ionicons
               name={focused ? 'stats-chart' : 'stats-chart-outline'}
-              size={23}
+              size={26}
               color={color}
             />
           ),
@@ -119,7 +137,7 @@ export const AppNavigator: React.FC = () => {
           tabBarIcon: ({ color, focused }: { color: string; size: number; focused: boolean }) => (
             <Ionicons
               name={focused ? 'alarm' : 'alarm-outline'}
-              size={25}
+              size={26}
               color={color}
             />
           ),
@@ -136,29 +154,42 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 24 : 16,
+    bottom: Platform.OS === 'ios' ? 24 : 14,
     left: 16,
     right: 16,
-    height: Platform.OS === 'ios' ? 72 : 68,
-    borderRadius: 28,
+    height: Platform.OS === 'ios' ? 78 : 72,
+    borderRadius: 24,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 0,
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.8)',
-    paddingTop: 8,
-    paddingBottom: Platform.OS === 'ios' ? 12 : 8,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  tabBarButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 18,
+    marginHorizontal: 3,
+    marginVertical: 4,
+    minHeight: 48,
+    minWidth: 48,
+    paddingVertical: 4,
+  },
+  tabBarButtonFocused: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
   },
   tabBarLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     marginTop: 2,
-  },
-  tabBarItem: {
-    paddingVertical: 2,
   },
 });

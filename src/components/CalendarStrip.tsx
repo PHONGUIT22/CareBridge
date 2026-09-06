@@ -6,11 +6,13 @@ import { Feather } from '@expo/vector-icons';
 interface CalendarStripProps {
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
+  onOpenMonthModal?: () => void;
 }
 
 export const CalendarStrip: React.FC<CalendarStripProps> = ({
   selectedDate,
   onSelectDate,
+  onOpenMonthModal,
 }) => {
   const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
@@ -44,6 +46,16 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <Text style={styles.monthText}>{formattedMonth}</Text>
+        {onOpenMonthModal && (
+          <TouchableOpacity
+            onPress={onOpenMonthModal}
+            style={styles.calendarPickerBtn}
+            activeOpacity={0.7}
+          >
+            <Feather name="calendar" size={15} color="#1E3A8A" />
+            <Text style={styles.calendarPickerText}>Xem lịch tháng</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.stripWrapper}>
@@ -111,12 +123,31 @@ const styles = StyleSheet.create({
   headerRow: {
     paddingHorizontal: 16,
     marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   monthText: {
     fontSize: THEME.fontSizes.md,
     fontWeight: '800',
     color: THEME.colors.textSecondary,
     letterSpacing: 0.5,
+  },
+  calendarPickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+  },
+  calendarPickerText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E3A8A',
   },
   stripWrapper: {
     flexDirection: 'row',

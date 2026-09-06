@@ -169,7 +169,6 @@ export const LogRepo = {
         l.taken_at as takenAt
       FROM intake_logs l
       INNER JOIN medicines m ON l.medicine_id = m.id
-      WHERE l.date >= substr(m.created_at, 1, 10)
       ORDER BY l.date DESC, l.time ASC
     `;
 

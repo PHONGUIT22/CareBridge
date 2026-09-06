@@ -164,52 +164,43 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
             {type === 'routine' ? dosage : `${dosage} • Take ${intakeCount} pill${intakeCount > 1 ? 's' : ''}`}
           </Text>
 
-          {/* Status Timing Label & Clinical Note Pill */}
+          {/* Status Timing Label */}
           {isTaken ? (
-            <TouchableOpacity
-              onPress={onOpenNoteModal}
-              onLongPress={onOpenNoteModal}
-              activeOpacity={0.7}
-              style={styles.statusNoteContainer}
-            >
-              <Text style={styles.takenLabel}>
-                {type === 'routine' ? `Completed at ${takenAt || 'scheduled time'}` : `Taken at ${takenAt || 'scheduled time'}`}
-              </Text>
-              {notes && notes.trim().length > 0 ? (
-                <View style={styles.notePill}>
-                  <Feather name="file-text" size={11} color="#64748B" style={{ marginRight: 4 }} />
-                  <Text style={styles.notePillText} numberOfLines={1}>
-                    {notes}
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.addNotePrompt}>
-                  <Feather name="edit-3" size={10} color="#0284C7" style={{ marginRight: 3 }} />
-                  <Text style={styles.addNotePromptText}>Add note</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+            <Text style={styles.takenLabel}>
+              {type === 'routine' ? `Completed at ${takenAt || 'scheduled time'}` : `Taken at ${takenAt || 'scheduled time'}`}
+            </Text>
           ) : isFuture ? (
             <Text style={styles.futureLabel}>Scheduled (Upcoming)</Text>
           ) : (
-            <TouchableOpacity
-              onPress={onOpenNoteModal}
-              onLongPress={onOpenNoteModal}
-              activeOpacity={0.7}
-              style={styles.statusNoteContainer}
-            >
-              <Text style={styles.notTakenLabel}>
-                {type === 'routine' ? 'Not completed' : 'Not taken'}
-              </Text>
-              {notes && notes.trim().length > 0 && (
-                <View style={styles.notePill}>
-                  <Feather name="file-text" size={11} color="#64748B" style={{ marginRight: 4 }} />
-                  <Text style={styles.notePillText} numberOfLines={1}>
-                    {notes}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
+            <Text style={styles.notTakenLabel}>
+              {type === 'routine' ? 'Not completed' : 'Not taken'}
+            </Text>
+          )}
+
+          {/* Explicit Clinical Diary / Note Action Button */}
+          {onOpenNoteModal && (
+            notes && notes.trim().length > 0 ? (
+              <TouchableOpacity
+                style={styles.notePillActive}
+                onPress={onOpenNoteModal}
+                activeOpacity={0.75}
+              >
+                <MaterialCommunityIcons name="notebook-edit-outline" size={13} color="#0284C7" />
+                <Text style={styles.notePillActiveText} numberOfLines={2}>
+                  {notes}
+                </Text>
+                <Feather name="edit-2" size={10} color="#94A3B8" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.notePillEmpty}
+                onPress={onOpenNoteModal}
+                activeOpacity={0.75}
+              >
+                <Feather name="plus-circle" size={12} color="#0284C7" />
+                <Text style={styles.notePillEmptyText}>Add Diary Note / Symptoms</Text>
+              </TouchableOpacity>
+            )
           )}
         </View>
       </TouchableOpacity>
@@ -318,36 +309,45 @@ const styles = StyleSheet.create({
     color: THEME.colors.royalBlue,
     marginTop: 3,
   },
-  statusNoteContainer: {
+  notePillActive: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginTop: 6,
     alignSelf: 'flex-start',
-    marginTop: 2,
     maxWidth: '100%',
   },
-  notePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    marginTop: 4,
-    maxWidth: 200,
-  },
-  notePillText: {
+  notePillActiveText: {
+    flexShrink: 1,
     fontSize: 11,
-    color: '#64748B',
-    flex: 1,
-    fontWeight: '500',
+    fontWeight: '600',
+    color: '#334155',
+    lineHeight: 15,
   },
-  addNotePrompt: {
+  notePillEmpty: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 3,
+    gap: 6,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginTop: 6,
+    alignSelf: 'flex-start',
   },
-  addNotePromptText: {
-    fontSize: 10,
+  notePillEmptyText: {
+    fontSize: 11,
+    fontWeight: '700',
     color: '#0284C7',
-    fontWeight: '600',
   },
   rightCol: {
     marginLeft: 10,

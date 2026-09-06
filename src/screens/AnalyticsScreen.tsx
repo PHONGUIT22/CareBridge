@@ -45,9 +45,16 @@ export const AnalyticsScreen: React.FC = () => {
   // Take last 7 records for Free tier, or entire history for Pro
   const displayData = isPro ? vitals : vitals.slice(-7);
 
-  // Generate labels and datasets according to selected metric
+  // Calculate smart X-axis labels to prevent label overlap when viewing extended ranges
+  const step = Math.ceil(displayData.length / 5);
   const labels = displayData.length > 0
-    ? displayData.map((d) => d.date.slice(5)) // Extract "MM-DD"
+    ? displayData.map((d, index) => {
+        // Only show text for first, last, or evenly spaced milestone intervals
+        if (index === 0 || index === displayData.length - 1 || index % step === 0) {
+          return d.date.slice(5); // "MM-DD"
+        }
+        return ''; // Leave empty between intervals to maintain scale without overlapping
+      })
     : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   const getDatasets = () => {
@@ -183,6 +190,7 @@ export const AnalyticsScreen: React.FC = () => {
             }}
             width={screenWidth - 48}
             height={220}
+            withDots={displayData.length <= 14}
             chartConfig={{
               backgroundColor: '#FFFFFF',
               backgroundGradientFrom: '#FFFFFF',
@@ -191,8 +199,8 @@ export const AnalyticsScreen: React.FC = () => {
               color: (opacity = 1) => `rgba(15, 23, 42, ${opacity})`,
               labelColor: (opacity = 1) => `rgba(100, 116, 139, ${opacity})`,
               propsForDots: {
-                r: '4',
-                strokeWidth: '2',
+                r: displayData.length > 7 ? '2' : '4',
+                strokeWidth: '1',
                 stroke: '#FFFFFF',
               },
             }}

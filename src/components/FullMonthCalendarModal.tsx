@@ -6,7 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  Dimensions,
 } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { LogRepo, DailyLogItem } from '../database/logRepo';
@@ -18,7 +17,7 @@ interface FullMonthCalendarModalProps {
   onClose: () => void;
 }
 
-const WEEK_DAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+const WEEK_DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
 const formatToISODate = (d: Date): string => {
   const y = d.getFullYear();
@@ -100,10 +99,6 @@ export const FullMonthCalendarModal: React.FC<FullMonthCalendarModalProps> = ({
   const realTodayStr = formatToISODate(realToday);
   const selectedDateStr = formatToISODate(currentDate);
 
-  const monthTitle = viewDate.toLocaleDateString('vi-VN', {
-    month: 'long',
-    year: 'numeric',
-  });
   const monthTitleEn = viewDate.toLocaleDateString('en-US', {
     month: 'long',
     year: 'numeric',
@@ -133,7 +128,6 @@ export const FullMonthCalendarModal: React.FC<FullMonthCalendarModalProps> = ({
 
                   <View style={styles.monthTitleWrapper}>
                     <Text style={styles.monthTitleText}>{monthTitleEn}</Text>
-                    <Text style={styles.monthSubtitleText}>{monthTitle}</Text>
                   </View>
 
                   <TouchableOpacity
@@ -241,7 +235,7 @@ export const FullMonthCalendarModal: React.FC<FullMonthCalendarModalProps> = ({
                       {/* Today Badge */}
                       {isToday && (
                         <View style={styles.todayIndicator}>
-                          <Text style={styles.todayIndicatorText}>Nay</Text>
+                          <Text style={styles.todayIndicatorText}>Today</Text>
                         </View>
                       )}
                     </TouchableOpacity>
@@ -253,15 +247,15 @@ export const FullMonthCalendarModal: React.FC<FullMonthCalendarModalProps> = ({
               <View style={styles.legendContainer}>
                 <View style={styles.legendItem}>
                   <View style={[styles.legendDot, { backgroundColor: '#16A34A' }]} />
-                  <Text style={styles.legendText}>Đã uống đủ (100%)</Text>
+                  <Text style={styles.legendText}>100% Taken</Text>
                 </View>
                 <View style={styles.legendItem}>
                   <View style={[styles.legendDot, { backgroundColor: '#D97706' }]} />
-                  <Text style={styles.legendText}>Một phần</Text>
+                  <Text style={styles.legendText}>Partial</Text>
                 </View>
                 <View style={styles.legendItem}>
                   <View style={[styles.legendDot, { backgroundColor: '#DC2626' }]} />
-                  <Text style={styles.legendText}>Chưa uống / Bỏ lỡ</Text>
+                  <Text style={styles.legendText}>Missed</Text>
                 </View>
               </View>
 
@@ -272,7 +266,7 @@ export const FullMonthCalendarModal: React.FC<FullMonthCalendarModalProps> = ({
                 onPress={handleJumpToToday}
               >
                 <Ionicons name="today-outline" size={18} color="#1E3A8A" />
-                <Text style={styles.todayButtonText}>Về ngày hôm nay (Today)</Text>
+                <Text style={styles.todayButtonText}>Back to Today</Text>
               </TouchableOpacity>
             </View>
           </TouchableWithoutFeedback>
@@ -281,9 +275,6 @@ export const FullMonthCalendarModal: React.FC<FullMonthCalendarModalProps> = ({
     </Modal>
   );
 };
-
-const { width } = Dimensions.get('window');
-const CELL_SIZE = Math.floor((Math.min(width - 48, 380) - 24) / 7);
 
 const styles = StyleSheet.create({
   backdrop: {
@@ -335,12 +326,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#1E3A8A',
   },
-  monthSubtitleText: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
   closeButton: {
     width: 34,
     height: 34,
@@ -356,7 +341,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   weekCell: {
-    width: CELL_SIZE,
+    width: '14.28%',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -374,8 +359,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   dayCell: {
-    width: CELL_SIZE,
-    height: CELL_SIZE + 8,
+    width: '14.28%',
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 2,

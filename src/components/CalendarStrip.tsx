@@ -53,7 +53,7 @@ export const CalendarStrip: React.FC<CalendarStripProps> = ({
             activeOpacity={0.7}
           >
             <Feather name="calendar" size={15} color="#1E3A8A" />
-            <Text style={styles.calendarPickerText}>Xem lịch tháng</Text>
+            <Text style={styles.calendarPickerText}>View Calendar</Text>
           </TouchableOpacity>
         )}
       </View>

@@ -141,6 +141,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
                 ]}
                 onPress={onRefill}
                 activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <MaterialCommunityIcons
                   name="pill"
@@ -184,6 +185,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
                 style={styles.notePillActive}
                 onPress={onOpenNoteModal}
                 activeOpacity={0.75}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <MaterialCommunityIcons name="notebook-edit-outline" size={13} color="#0284C7" />
                 <Text style={styles.notePillActiveText} numberOfLines={2}>
@@ -196,6 +198,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
                 style={styles.notePillEmpty}
                 onPress={onOpenNoteModal}
                 activeOpacity={0.75}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Feather name="plus-circle" size={12} color="#0284C7" />
                 <Text style={styles.notePillEmptyText}>Add Diary Note / Symptoms</Text>
@@ -212,6 +215,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
             style={styles.pillBtnLocked}
             onPress={handleFuturePress}
             activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Feather name="lock" size={13} color="#94A3B8" style={{ marginRight: 4 }} />
             <Text style={styles.pillTextLocked}>Locked</Text>
@@ -222,6 +226,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
             onPress={onToggleTake}
             onLongPress={onOpenNoteModal}
             activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="checkmark-circle" size={15} color="#15803D" style={{ marginRight: 4 }} />
             <Text style={styles.pillTextTaken}>{type === 'routine' ? 'Done' : 'Taken'}</Text>
@@ -232,6 +237,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
             onPress={onToggleTake}
             onLongPress={onOpenNoteModal}
             activeOpacity={0.85}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Text style={styles.pillTextTake}>{type === 'routine' ? 'Done' : 'Take'}</Text>
           </TouchableOpacity>
@@ -355,9 +361,11 @@ const styles = StyleSheet.create({
   // Pill button styles
   pillBtnTake: {
     backgroundColor: THEME.colors.primary,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 20,
+    borderRadius: 24,
+    minHeight: 48,
+    minWidth: 78,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: THEME.colors.primary,
@@ -374,9 +382,11 @@ const styles = StyleSheet.create({
   },
   pillBtnTaken: {
     backgroundColor: '#DCFCE7',
-    paddingVertical: 9,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 20,
+    borderRadius: 24,
+    minHeight: 48,
+    minWidth: 78,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -388,9 +398,11 @@ const styles = StyleSheet.create({
   },
   pillBtnLocked: {
     backgroundColor: '#F1F5F9',
-    paddingVertical: 9,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 20,
+    borderRadius: 24,
+    minHeight: 48,
+    minWidth: 78,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

@@ -173,9 +173,9 @@ export const MedicationPunchCard: React.FC<MedicationPunchCardProps> = ({
               style={styles.deleteBtn}
               onPress={onDelete}
               activeOpacity={0.7}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Feather name="trash-2" size={15} color="#FFFFFF" />
+              <Feather name="trash-2" size={16} color="#FFFFFF" />
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -185,17 +185,18 @@ export const MedicationPunchCard: React.FC<MedicationPunchCardProps> = ({
             ]}
             onPress={onToggleToday}
             activeOpacity={0.8}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Feather
               name={isTodayTaken ? 'check' : 'circle'}
-              size={20}
+              size={24}
               color="#FFFFFF"
             />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* MATRIX GRID: ALIGNED M - T - W - T - F - S - S */}
+      {/* MATRIX GRID: Read-only visual compliance display (CELL_SIZE = 18). Interaction is kept strictly on the primary 48x48 touch button above to avoid accidental taps */}
       <View style={styles.gridWrapper}>
         <View style={styles.yAxisLabels}>
           {WEEKDAYS.map((label, idx) => (
@@ -306,17 +307,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   deleteBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(0, 0, 0, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   todayCheckBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },

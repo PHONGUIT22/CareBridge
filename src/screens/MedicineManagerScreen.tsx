@@ -659,7 +659,11 @@ export const MedicineManagerScreen: React.FC = () => {
                   ? 'New Care Routine'
                   : 'New Prescription'}
               </Text>
-              <TouchableOpacity onPress={() => setIsModalVisible(false)}>
+              <TouchableOpacity
+                onPress={() => setIsModalVisible(false)}
+                activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
                 <Feather name="x" size={26} color={THEME.light.textSecondary} />
               </TouchableOpacity>
             </View>
@@ -817,7 +821,12 @@ export const MedicineManagerScreen: React.FC = () => {
                       )}
                     </TouchableOpacity>
                     {selectedImage && (
-                      <TouchableOpacity style={styles.removePhotoBtn} onPress={() => setSelectedImage(null)}>
+                      <TouchableOpacity
+                        style={styles.removePhotoBtn}
+                        onPress={() => setSelectedImage(null)}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
                         <Feather name="trash-2" size={16} color={THEME.colors.statusSkipped} />
                         <Text style={styles.removePhotoText}>Remove Photo</Text>
                       </TouchableOpacity>

@@ -179,6 +179,12 @@ export const MedicineManagerScreen: React.FC = () => {
   };
 
   const showAddFormAfterAd = () => {
+    // Limit to 2 prescriptions for Free tier
+    if (!isPro && medsCount >= 2) {
+      setIsPaywallOpen(true);
+      return;
+    }
+
     setEditingMedId(null);
     setSelectedType('medication');
     setSelectedMedName(PRESET_MEDICINES[0].name);

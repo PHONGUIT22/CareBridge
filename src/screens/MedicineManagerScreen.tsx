@@ -31,7 +31,7 @@ import { AdService } from '../services/admobService';
 import { formatToISODate } from '../utils/dateUtils';
 import { useAlert } from '../context/AlertContext';
 import { PaywallModal } from '../components/PaywallModal';
-import Svg, { Defs, LinearGradient as SvgGradient, Stop, Rect } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 import { VitalsRepo, VitalsRecord } from '../database/vitalsRepo';
 
 const PRESET_MEDICINES = [
@@ -419,17 +419,12 @@ export const MedicineManagerScreen: React.FC = () => {
       </View>
 
       {/* 2. HERO DASHBOARD CARD */}
-      <View style={styles.heroCard}>
-        <Svg height="100%" width="100%" style={StyleSheet.absoluteFillObject}>
-          <Defs>
-            <SvgGradient id="heroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <Stop offset="0%" stopColor="#1E3A8A" />
-              <Stop offset="100%" stopColor="#2563EB" />
-            </SvgGradient>
-          </Defs>
-          <Rect width="100%" height="100%" rx={22} fill="url(#heroGrad)" />
-        </Svg>
-
+      <LinearGradient
+        colors={['#1E3A8A', '#2563EB']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroCard}
+      >
         <View style={styles.heroDecorativeCircle} />
 
         <View style={styles.heroContentRow}>
@@ -440,7 +435,7 @@ export const MedicineManagerScreen: React.FC = () => {
             </View>
 
             <Text style={styles.heroGreetingText} numberOfLines={1}>
-              {`${getGreetingTime()}, ${caregiver.name || 'Caregiver'}`}
+              {`${getGreetingTime()}, ${caregiver.name ? caregiver.name.split(' ')[0] : 'Caregiver'}`}
             </Text>
 
             <Text style={styles.heroDoseCountText}>
@@ -462,7 +457,7 @@ export const MedicineManagerScreen: React.FC = () => {
             </View>
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
       {/* 3. CALENDAR STRIP */}
       <View style={styles.calendarContainer}>

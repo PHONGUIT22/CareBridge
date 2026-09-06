@@ -15,7 +15,7 @@ import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 interface PaywallModalProps {
   visible: boolean;
   onClose: () => void;
-  onUnlocked: () => void;
+  onUnlocked: () => void | Promise<void>;
 }
 
 export const PaywallModal: React.FC<PaywallModalProps> = ({
@@ -31,7 +31,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
       const success = await SubscriptionService.purchasePro();
       if (success) {
         Alert.alert('🎉 Welcome to Pro!', 'Unlimited prescriptions & Clinical PDF Export unlocked.');
-        onUnlocked();
+        await onUnlocked();
         onClose();
       }
     } catch (error) {
@@ -41,10 +41,10 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
     }
   };
 
-  const handleResetFree = () => {
+  const handleResetFree = async () => {
     SubscriptionService.resetToFree();
     Alert.alert('Reset Free Tier', 'App reverted to Free plan (Max 2 prescriptions).');
-    onUnlocked();
+    await onUnlocked();
     onClose();
   };
 

@@ -778,7 +778,9 @@ export const MedicineManagerScreen: React.FC = () => {
       <PaywallModal
         visible={isPaywallOpen}
         onClose={() => setIsPaywallOpen(false)}
-        onUnlocked={updateSubscriptionState}
+        onUnlocked={async () => {
+          await updateSubscriptionState(); // Automatically reload PRO badge state
+        }}
       />
     </SafeAreaView>
   );

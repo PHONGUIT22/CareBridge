@@ -14,6 +14,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { THEME } from '../constants/theme';
 
 export interface DoseNoteModalProps {
@@ -25,12 +26,70 @@ export interface DoseNoteModalProps {
   onSave: (notes: string) => Promise<void>;
 }
 
-const QUICK_TAGS = [
-  { label: 'Taken with meal', icon: 'food-apple-outline' as const },
-  { label: 'Empty stomach', icon: 'water-outline' as const },
-  { label: 'Mild dizziness', icon: 'alert-circle-outline' as const },
-  { label: 'Nausea', icon: 'emoticon-sick-outline' as const },
-  { label: 'Normal / No side effects', icon: 'check-circle-outline' as const },
+export type SeverityType = 'positive' | 'warning' | 'alert';
+
+export interface QuickTagItem {
+  label: string;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  severity: SeverityType;
+  bg: string;
+  selectedBg: string;
+  borderColor: string;
+  selectedBorderColor: string;
+  textColor: string;
+}
+
+const QUICK_TAGS: QuickTagItem[] = [
+  {
+    label: 'Taken with meal',
+    icon: 'food-apple-outline',
+    severity: 'positive',
+    bg: '#F0FDF4',
+    selectedBg: '#DCFCE7',
+    borderColor: '#BBF7D0',
+    selectedBorderColor: '#86EFAC',
+    textColor: '#166534',
+  },
+  {
+    label: 'Normal / No side effects',
+    icon: 'check-circle-outline',
+    severity: 'positive',
+    bg: '#F0FDF4',
+    selectedBg: '#DCFCE7',
+    borderColor: '#BBF7D0',
+    selectedBorderColor: '#86EFAC',
+    textColor: '#166534',
+  },
+  {
+    label: 'Empty stomach',
+    icon: 'water-outline',
+    severity: 'warning',
+    bg: '#FFFBEB',
+    selectedBg: '#FEF3C7',
+    borderColor: '#FDE68A',
+    selectedBorderColor: '#F59E0B',
+    textColor: '#92400E',
+  },
+  {
+    label: 'Mild dizziness',
+    icon: 'alert-circle-outline',
+    severity: 'alert',
+    bg: '#FEF2F2',
+    selectedBg: '#FEE2E2',
+    borderColor: '#FECACA',
+    selectedBorderColor: '#FCA5A5',
+    textColor: '#991B1B',
+  },
+  {
+    label: 'Nausea',
+    icon: 'emoticon-sick-outline',
+    severity: 'alert',
+    bg: '#FEF2F2',
+    selectedBg: '#FEE2E2',
+    borderColor: '#FECACA',
+    selectedBorderColor: '#FCA5A5',
+    textColor: '#991B1B',
+  },
 ];
 
 export const DoseNoteModal: React.FC<DoseNoteModalProps> = ({
@@ -51,6 +110,9 @@ export const DoseNoteModal: React.FC<DoseNoteModalProps> = ({
   }, [visible, currentNotes]);
 
   const handleTagPress = (tagLabel: string) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {}
     setNotes((prev) => {
       const trimmed = prev.trim();
       if (!trimmed) {
@@ -120,18 +182,37 @@ export const DoseNoteModal: React.FC<DoseNoteModalProps> = ({
                     return (
                       <TouchableOpacity
                         key={tag.label}
-                        style={[styles.chip, isSelected && styles.chipSelected]}
+                        style={[
+                          styles.chip,
+                          {
+                            backgroundColor: isSelected ? tag.selectedBg : tag.bg,
+                            borderColor: isSelected ? tag.selectedBorderColor : tag.borderColor,
+                            borderWidth: isSelected ? 2 : 1.5,
+                          },
+                        ]}
                         onPress={() => handleTagPress(tag.label)}
                         activeOpacity={0.75}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       >
                         <MaterialCommunityIcons
                           name={tag.icon}
-                          size={15}
-                          color={isSelected ? '#1D4ED8' : '#475569'}
+                          size={16}
+                          color={tag.textColor}
                         />
-                        <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                        <Text
+                          style={[
+                            styles.chipText,
+                            {
+                              color: tag.textColor,
+                              fontWeight: isSelected ? '800' : '600',
+                            },
+                          ]}
+                        >
                           {tag.label}
                         </Text>
+                        {isSelected && (
+                          <Feather name="check" size={13} color={tag.textColor} style={{ marginLeft: 2 }} />
+                        )}
                       </TouchableOpacity>
                     );
                   })}
@@ -304,25 +385,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderRadius: 20,
-  },
-  chipSelected: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#3B82F6',
+    borderWidth: 1.5,
   },
   chipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
-  },
-  chipTextSelected: {
-    color: '#1D4ED8',
-    fontWeight: '700',
   },
   inputWrapper: {
     backgroundColor: '#F8FAFC',

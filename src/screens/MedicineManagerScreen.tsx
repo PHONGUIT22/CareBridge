@@ -90,6 +90,7 @@ export const MedicineManagerScreen: React.FC = () => {
 
   // Caregiver Profile State (synced from local SQLite)
   const [caregiver, setCaregiver] = useState<CaregiverProfile>(() => CaregiverRepo.getCaregiverSync());
+  const displayCaregiverName = caregiver.name.replace(/\s*\([^)]*\)/g, '').trim() || caregiver.name;
 
   // Today Vitals State for Hero Card
   const [vitals, setVitals] = useState<VitalsRecord | null>(null);
@@ -400,8 +401,8 @@ export const MedicineManagerScreen: React.FC = () => {
             <Text style={styles.subGreeting}>DAILY SCHEDULE</Text>
             <View style={styles.caregiverBadge}>
               <Feather name="user-check" size={10} color={THEME.colors.royalBlue} />
-              <Text style={styles.caregiverBadgeText} numberOfLines={1}>
-                Caregiver: {caregiver.name}
+              <Text style={styles.caregiverBadgeText} numberOfLines={1} ellipsizeMode="tail">
+                {displayCaregiverName}
               </Text>
             </View>
           </View>
@@ -410,31 +411,35 @@ export const MedicineManagerScreen: React.FC = () => {
           </Text>
         </View>
 
-        <TouchableOpacity
-          style={{
-            backgroundColor: isPro ? '#DCFCE7' : '#FEF3C7',
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            borderRadius: 12,
-            marginRight: 10,
-            borderWidth: 1,
-            borderColor: isPro ? '#86EFAC' : '#FDE68A',
-          }}
-          onPress={() => setIsPaywallOpen(true)}
-          activeOpacity={0.8}
-        >
-          <Text style={{ fontSize: 12, fontWeight: '800', color: isPro ? '#16A34A' : '#B45309' }}>
-            {isPro ? 'PRO ACTIVE' : 'UPGRADE PRO'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.headerRightActions}>
+          <TouchableOpacity
+            style={[styles.proButton, isPro ? styles.proButtonActive : styles.proButtonFree]}
+            onPress={() => setIsPaywallOpen(true)}
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons
+              name="crown"
+              size={13}
+              color={isPro ? '#16A34A' : '#B45309'}
+            />
+            <Text
+              style={[
+                styles.proButtonText,
+                { color: isPro ? '#16A34A' : '#B45309' },
+              ]}
+            >
+              {isPro ? 'PRO ACTIVE' : 'UPGRADE PRO'}
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.headerAddButton}
-          onPress={openAddModal}
-          activeOpacity={0.8}
-        >
-          <Feather name="plus" size={24} color={THEME.colors.textWhite} />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerAddButton}
+            onPress={openAddModal}
+            activeOpacity={0.8}
+          >
+            <Feather name="plus" size={20} color={THEME.colors.textWhite} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* 2. HERO DASHBOARD CARD */}
@@ -970,6 +975,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#DBEAFE',
     gap: 4,
+    maxWidth: 140,
   },
   caregiverBadgeText: {
     fontSize: 11,
@@ -988,11 +994,38 @@ const styles = StyleSheet.create({
     color: THEME.light.textPrimary,
     marginTop: 2,
   },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  proButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    height: 38,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  proButtonActive: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#86EFAC',
+  },
+  proButtonFree: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FDE68A',
+  },
+  proButtonText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
   headerAddButton: {
     backgroundColor: THEME.colors.primary,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     ...THEME.shadows.card,

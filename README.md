@@ -124,6 +124,7 @@ CareBridge/
 │   │   ├── EditorialHeroScreen.tsx # Onboarding & introduction
 │   │   └── AuthWelcomeScreen.tsx  # Caregiver portal & guest sign-in
 │   ├── services/
+│   │   ├── demoDataService.ts     # 30-day clinical historical data seeder
 │   │   ├── notificationService.ts # Local daily push notification scheduler
 │   │   ├── revenuecat.ts          # RevenueCat In-App Purchases & Pro state
 │   │   ├── pdfService.ts          # Clinical PDF document generator
@@ -135,6 +136,12 @@ CareBridge/
 ---
 
 ## 🚀 Getting Started
+
+### 🧑‍⚖️ Instant Demo Account for Evaluators
+To experience CareBridge with a vibrant 30-day compliance punch-card matrix and realistic biometric trend analytics, sign in with:
+- **Email:** `demo@gmail.com`
+- **Password:** `1234`
+*(This automatically seeds 30 days of clinical intake logs and vitals history into local SQLite).*
 
 ### Prerequisites
 - Node.js (v18.x or later)

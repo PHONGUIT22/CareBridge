@@ -15,6 +15,7 @@ import { THEME } from '../constants/theme';
 import { CaregiverRepo } from '../database/caregiverRepo';
 import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useAlert } from '../context/AlertContext';
+import { seedDemoData } from '../services/demoDataService';
 
 interface AuthWelcomeScreenProps {
   onAuthenticate?: () => void;
@@ -31,28 +32,45 @@ export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ onAuthenti
 
   // Handle email sign-in
   const handleEmailSignIn = async () => {
-    if (!email.trim()) {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
       showAlert({
         title: 'Email Required',
-        message: 'Please enter your caregiver email or continue without an account.',
+        message: 'Please enter your caregiver email or test with the Hackathon demo account.',
         type: 'warning',
         cancelText: 'Cancel',
-        confirmText: 'Use Demo Email',
+        confirmText: 'Use Demo Account',
         onConfirm: () => {
-          setEmail('caregiver.demo@carebridge.health');
+          setEmail('demo@gmail.com');
+          setPassword('1234');
         },
       });
       return;
     }
 
     setIsSubmitting(true);
-    // Persist caregiver credentials to SQLite so Today screen and PDF reflect the user
-    await CaregiverRepo.saveCaregiver(email.trim());
+    try {
+      const lowerEmail = trimmedEmail.toLowerCase();
+      const trimmedPass = password.trim();
 
-    setTimeout(() => {
+      // Check for Hackathon Demo Credentials
+      if (lowerEmail === 'demo@gmail.com' && trimmedPass === '1234') {
+        // Wipe dummy data & seed 30 days of pristine clinical records
+        await seedDemoData();
+      } else {
+        // Persist caregiver credentials to SQLite so Today screen and PDF reflect the user
+        await CaregiverRepo.saveCaregiver(trimmedEmail);
+      }
+
+      setTimeout(() => {
+        setIsSubmitting(false);
+        handleComplete();
+      }, 300);
+    } catch (error) {
+      console.error('Sign in / seeder error:', error);
       setIsSubmitting(false);
       handleComplete();
-    }, 300);
+    }
   };
 
   // Handle guest caregiver sign-in (allows instant offline access)
@@ -104,6 +122,28 @@ export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ onAuthenti
             <Text style={styles.cardSubtitle}>
               Sign in to manage prescriptions, biometric vitals, and adherence reports.
             </Text>
+
+            {/* Hackathon Evaluator Quick Access */}
+            <TouchableOpacity
+              style={styles.demoCard}
+              onPress={() => {
+                setEmail('demo@gmail.com');
+                setPassword('1234');
+              }}
+              activeOpacity={0.8}
+            >
+              <View style={styles.demoCardHeader}>
+                <MaterialCommunityIcons name="lightning-bolt" size={15} color="#B45309" />
+                <Text style={styles.demoCardBadge}>HACKATHON EVALUATOR DEMO</Text>
+                <Feather name="corner-down-left" size={12} color="#B45309" style={{ marginLeft: 'auto' }} />
+              </View>
+              <Text style={styles.demoCardText}>
+                Tap to auto-fill: <Text style={styles.demoCardBold}>demo@gmail.com</Text> / PIN <Text style={styles.demoCardBold}>1234</Text>
+              </Text>
+              <Text style={styles.demoCardSubtext}>
+                Wipes mock data & seeds 30-day clinical vitals + adherence into SQLite
+              </Text>
+            </TouchableOpacity>
 
             {/* Email Input */}
             <View style={styles.inputGroup}>
@@ -400,5 +440,39 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 11,
     color: '#94A3B8',
+  },
+  demoCard: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 16,
+  },
+  demoCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    gap: 4,
+  },
+  demoCardBadge: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#B45309',
+    letterSpacing: 0.6,
+  },
+  demoCardText: {
+    fontSize: 12,
+    color: '#92400E',
+    marginBottom: 2,
+  },
+  demoCardBold: {
+    fontWeight: '700',
+    color: '#78350F',
+  },
+  demoCardSubtext: {
+    fontSize: 10,
+    color: '#B45309',
+    fontStyle: 'italic',
   },
 });

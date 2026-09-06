@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { THEME } from '../constants/theme';
 import { MedicineManagerScreen } from '../screens/MedicineManagerScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
+import { AnalyticsScreen } from '../screens/AnalyticsScreen';
 import { DeskModeScreen } from '../screens/DeskModeScreen';
 import { EditorialHeroScreen } from '../screens/EditorialHeroScreen';
 import { AuthWelcomeScreen } from '../screens/AuthWelcomeScreen';
@@ -13,6 +14,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 export type RootTabParamList = {
   Today: undefined;
   History: undefined;
+  Analytics: undefined;
   DeskMode: undefined; // <-- Hands-free desk clock tab
 };
 
@@ -92,7 +94,23 @@ export const AppNavigator: React.FC = () => {
         }}
       />
 
-      {/* TAB 3: NIGHTSTAND DESK CLOCK */}
+      {/* TAB 3: VITALS ANALYTICS */}
+      <Tab.Screen
+        name="Analytics"
+        component={AnalyticsScreen}
+        options={{
+          tabBarLabel: 'Analytics',
+          tabBarIcon: ({ color, focused }: { color: string; size: number; focused: boolean }) => (
+            <Ionicons
+              name={focused ? 'stats-chart' : 'stats-chart-outline'}
+              size={23}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      {/* TAB 4: NIGHTSTAND DESK CLOCK */}
       <Tab.Screen
         name="DeskMode"
         component={DeskModeScreen}

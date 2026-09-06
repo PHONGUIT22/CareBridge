@@ -52,6 +52,7 @@ For hackathon evaluation and review, CareBridge includes RevenueCat test credent
 ### 1. 📅 Daily Medication Hub & Compliance Dashboard
 - **Modern Clinical Health Interface:** Clean cards with pastel classification badges, pill doses, and one-touch "Take Dose" actions.
 - **Hero Dashboard:** Real-time compliance score ring, contextual greeting, and today's vital summary.
+- **Clinical Medication Diary & Symptom Tracking:** Seniors and caregivers can attach clinical notes and 1-tap symptom observations (`Taken with meal`, `Empty stomach`, `Mild dizziness`, `Nausea`, `Normal / No side effects`) directly to any dose. Notes are displayed as prominent actionable pills on medication cards and persisted in local SQLite.
 - **Visual Pill Photo Identification (Visual ID):** Camera and gallery integration allowing seniors to recognize pills by sight rather than confusing generic chemical names.
 - **Quick Vitals Bar:** Record Blood Pressure (Systolic/Diastolic), Blood Sugar, and Heart Rate directly from the home screen.
 
@@ -67,7 +68,7 @@ For hackathon evaluation and review, CareBridge includes RevenueCat test credent
   - 🟡 **Partial:** Some doses missed.
   - 🔴 **Missed:** No doses taken.
   - 🔵 **Active Selection:** Currently inspected day.
-- **Habit Matrix Screen:** Punch-card layout displaying daily adherence records across the entire calendar year.
+- **Habit Matrix Screen (`HistoryScreen.tsx`):** Interactive punch-card cards (`MedicationPunchCard.tsx`) displaying weekly compliance matrices across the year, continuous streak counters, adherence rates, and quick today check-in / delete actions with clean header alignment.
 
 ### 4. ⏰ Hands-Free Nightstand Desk Mode (Foldable / Flex Mode Support)
 - **High-Contrast Night Clock:** Clean digital clock, upcoming dose countdown, and large tactile "I TOOK MY PILL" button.
@@ -76,7 +77,7 @@ For hackathon evaluation and review, CareBridge includes RevenueCat test credent
 
 ### 5. 📈 Vitals Analytics & Clinical PDF Report
 - **Trend Charts:** Interactive Line Charts (`react-native-chart-kit`) visualizing Blood Pressure, Blood Sugar, and Pulse variations over time.
-- **Export Doctor Report:** Generates a structured clinical PDF with patient details, adherence percentage, prescription schedules, and vitals history (`expo-print`, `expo-sharing`).
+- **Export Doctor Report:** Generates a structured clinical PDF with patient details, adherence percentage, prescription schedules, 30-day vitals trends, and a **Detailed Intake Audit with Clinical Notes & Observations** (`expo-print`, `expo-sharing`) allowing doctors to evaluate side effects alongside compliance.
 
 ### 6. 💎 In-App Purchases & CareBridge Pro (RevenueCat)
 - **RevenueCat Integration:** Native In-App Purchase paywall unlocking Unlimited Prescriptions, Multi-month PDF Exports, and Deep Analytics.
@@ -98,7 +99,9 @@ CareBridge/
 │   ├── components/                # Reusable accessible UI components
 │   │   ├── CalendarStrip.tsx      # 7-day horizontal calendar with month picker
 │   │   ├── FullMonthCalendarModal.tsx # 30/31-day modal with compliance dots
-│   │   ├── MedicineCard.tsx       # Senior-friendly medication card
+│   │   ├── MedicineCard.tsx       # Senior-friendly medication card with clinical note trigger
+│   │   ├── MedicationPunchCard.tsx # Yearly adherence punch-card card with matrix grid
+│   │   ├── DoseNoteModal.tsx      # Clinical diary & 1-tap symptom observation modal
 │   │   ├── QuickVitalsBar.tsx     # 1-tap vitals log bar
 │   │   ├── SeniorClock.tsx        # High-contrast live digital clock
 │   │   ├── CustomAlertModal.tsx   # Uniform accessible modal alerts
@@ -138,10 +141,10 @@ CareBridge/
 ## 🚀 Getting Started
 
 ### 🧑‍⚖️ Instant Demo Account for Evaluators
-To experience CareBridge with a vibrant 30-day compliance punch-card matrix and realistic biometric trend analytics, sign in with:
+To experience CareBridge with a vibrant 30-day compliance punch-card matrix, realistic biometric trend analytics, and clinical diary notes, sign in on the welcome screen with:
 - **Email:** `demo@gmail.com`
 - **Password:** `1234`
-*(This automatically seeds 30 days of clinical intake logs and vitals history into local SQLite).*
+*(Or tap the one-touch **"Demo (Evaluator Quick Access)"** button under the login form to automatically seed 30 days of clinical intake logs, symptom observations, and vitals history into local SQLite).*
 
 ### Prerequisites
 - Node.js (v18.x or later)

@@ -31,6 +31,8 @@ import { AdService } from '../services/admobService';
 import { formatToISODate } from '../utils/dateUtils';
 import { useAlert } from '../context/AlertContext';
 import { PaywallModal } from '../components/PaywallModal';
+import Svg, { Defs, LinearGradient as SvgGradient, Stop, Rect } from 'react-native-svg';
+import { VitalsRepo, VitalsRecord } from '../database/vitalsRepo';
 
 const PRESET_MEDICINES = [
   { name: 'Blood Pressure', icon: 'heart-pulse', defaultDose: '1 Tablet' },
@@ -81,6 +83,22 @@ export const MedicineManagerScreen: React.FC = () => {
   // Caregiver Profile State (synced from local SQLite)
   const [caregiver, setCaregiver] = useState<CaregiverProfile>(() => CaregiverRepo.getCaregiverSync());
 
+  // Today Vitals State for Hero Card
+  const [vitals, setVitals] = useState<VitalsRecord | null>(null);
+
+  const loadVitals = useCallback(async (date: string) => {
+    try {
+      const data = await VitalsRepo.getVitalsByDate(date);
+      setVitals(data);
+    } catch (err) {
+      console.warn('Failed to load vitals for hero card:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadVitals(selectedDateStr);
+  }, [selectedDateStr, loadVitals]);
+
   useEffect(() => {
     CaregiverRepo.getCaregiver().then((c) => setCaregiver(c));
     const unsubscribe = CaregiverRepo.subscribe((updated) => setCaregiver(updated));
@@ -100,6 +118,32 @@ export const MedicineManagerScreen: React.FC = () => {
   // Global Alert & Image Picker Modal States
   const { showAlert } = useAlert();
   const [isImagePickerModalVisible, setIsImagePickerModalVisible] = useState(false);
+
+  // Calculate daily compliance metrics for Hero Card
+  const allItems = timeGroups.flatMap((g) => g.items);
+  const totalCount = allItems.length;
+  const takenCount = allItems.filter((i) => i.isTaken).length;
+  const complianceScore = totalCount > 0 ? Math.round((takenCount / totalCount) * 100) : 100;
+
+  const getGreetingTime = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  const getVitalsSummary = () => {
+    if (vitals?.systolic && vitals?.diastolic) {
+      return `BP: ${vitals.systolic}/${vitals.diastolic} mmHg`;
+    }
+    if (vitals?.bloodSugar) {
+      return `Sugar: ${vitals.bloodSugar} mg/dL`;
+    }
+    if (vitals?.heartRate) {
+      return `Heart Rate: ${vitals.heartRate} BPM`;
+    }
+    return 'Vitals: Stable Range';
+  };
 
   const handleSelectType = (type: 'medication' | 'routine') => {
     setSelectedType(type);
@@ -374,7 +418,53 @@ export const MedicineManagerScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* 2. CALENDAR STRIP */}
+      {/* 2. HERO DASHBOARD CARD */}
+      <View style={styles.heroCard}>
+        <Svg height="100%" width="100%" style={StyleSheet.absoluteFillObject}>
+          <Defs>
+            <SvgGradient id="heroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <Stop offset="0%" stopColor="#1E3A8A" />
+              <Stop offset="100%" stopColor="#2563EB" />
+            </SvgGradient>
+          </Defs>
+          <Rect width="100%" height="100%" rx={22} fill="url(#heroGrad)" />
+        </Svg>
+
+        <View style={styles.heroDecorativeCircle} />
+
+        <View style={styles.heroContentRow}>
+          <View style={styles.heroLeft}>
+            <View style={styles.heroTagRow}>
+              <View style={styles.heroPulseDot} />
+              <Text style={styles.heroTagText}>DAILY COMPLIANCE</Text>
+            </View>
+
+            <Text style={styles.heroGreetingText} numberOfLines={1}>
+              {`${getGreetingTime()}, ${caregiver.name || 'Caregiver'}`}
+            </Text>
+
+            <Text style={styles.heroDoseCountText}>
+              {totalCount === 0
+                ? 'No medications scheduled today'
+                : `${takenCount} of ${totalCount} doses completed`}
+            </Text>
+
+            <View style={styles.heroVitalsBadge}>
+              <Ionicons name="heart-circle" size={15} color="#93C5FD" />
+              <Text style={styles.heroVitalsText}>{getVitalsSummary()}</Text>
+            </View>
+          </View>
+
+          <View style={styles.heroRight}>
+            <View style={styles.complianceCircle}>
+              <Text style={styles.compliancePercent}>{complianceScore}%</Text>
+              <Text style={styles.complianceLabel}>ADHERENCE</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* 3. CALENDAR STRIP */}
       <View style={styles.calendarContainer}>
         <CalendarStrip
           selectedDate={selectedDate}
@@ -862,12 +952,116 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...THEME.shadows.card,
   },
+  heroCard: {
+    marginHorizontal: 16,
+    marginTop: 6,
+    marginBottom: 10,
+    borderRadius: 22,
+    padding: 18,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#1E3A8A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  heroDecorativeCircle: {
+    position: 'absolute',
+    top: -30,
+    right: -30,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.07)',
+  },
+  heroContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  heroLeft: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  heroTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  heroPulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#34D399',
+  },
+  heroTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#93C5FD',
+    letterSpacing: 1.2,
+  },
+  heroGreetingText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+    marginBottom: 3,
+  },
+  heroDoseCountText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#E0E7FF',
+    marginBottom: 8,
+  },
+  heroVitalsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 5,
+  },
+  heroVitalsText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#F8FAFC',
+  },
+  heroRight: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  complianceCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 3.5,
+    borderColor: '#60A5FA',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  compliancePercent: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  complianceLabel: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: '#BFDBFE',
+    letterSpacing: 0.8,
+    marginTop: 1,
+  },
   calendarContainer: {
     marginBottom: 4,
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 40,
+    paddingBottom: 110,
   },
   centerContainer: {
     alignItems: 'center',

@@ -9,7 +9,7 @@ interface MedicineCardProps {
   dosage: string;
   intakeCount?: number;
   isTaken: boolean;
-  isFuture?: boolean; // <-- Lock if date is in the future
+  isFuture?: boolean; // Lock action if date is in the future
   takenAt?: string;
   imageUri?: string;
   stockCount?: number;
@@ -44,6 +44,51 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
     });
   };
 
+  // Determine pastel background and icon styling based on category and status
+  const getCategoryTheme = () => {
+    if (isTaken) {
+      return {
+        bg: '#DCFCE7',
+        color: '#16A34A',
+        iconName: 'check',
+        isMaterial: false,
+      };
+    }
+    if (type === 'routine') {
+      return {
+        bg: '#EEF2FF',
+        color: '#4F46E5',
+        iconName: 'heart-pulse',
+        isMaterial: true,
+      };
+    }
+    const lower = (name || '').toLowerCase();
+    if (lower.includes('pressure') || lower.includes('heart') || lower.includes('aspirin')) {
+      return {
+        bg: '#FEE2E2',
+        color: '#E11D48',
+        iconName: 'heart-pulse',
+        isMaterial: true,
+      };
+    }
+    if (lower.includes('sugar') || lower.includes('diabetes')) {
+      return {
+        bg: '#E0F2FE',
+        color: '#0284C7',
+        iconName: 'water-percent',
+        isMaterial: true,
+      };
+    }
+    return {
+      bg: '#EFF6FF',
+      color: '#2563EB',
+      iconName: 'pill',
+      isMaterial: true,
+    };
+  };
+
+  const catTheme = getCategoryTheme();
+
   return (
     <View style={styles.card}>
       {/* LEFT COLUMN: Press to open EDIT / DELETE modal */}
@@ -57,43 +102,32 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
             <Image source={{ uri: imageUri }} style={styles.pillThumb} />
             {isTaken && (
               <View style={styles.takenBadgeOverlay}>
-                <Feather name="check" size={14} color="#FFFFFF" />
+                <Feather name="check" size={12} color="#FFFFFF" />
               </View>
             )}
           </View>
         ) : (
-          <View
-            style={[
-              styles.statusIcon,
-              isTaken
-                ? styles.iconTaken
-                : isFuture
-                ? styles.iconFuture
-                : styles.iconPending,
-            ]}
-          >
-            {isTaken ? (
-              <Feather name="check" size={20} color="#FFFFFF" />
-            ) : isFuture ? (
-              <Feather name="clock" size={18} color={THEME.colors.royalBlue} />
+          <View style={[styles.circularIconContainer, { backgroundColor: catTheme.bg }]}>
+            {catTheme.isMaterial ? (
+              <MaterialCommunityIcons name={catTheme.iconName as any} size={24} color={catTheme.color} />
             ) : (
-              <Feather name="minus" size={20} color={THEME.light.textMuted} />
+              <Feather name={catTheme.iconName as any} size={22} color={catTheme.color} />
             )}
           </View>
         )}
 
         <View style={styles.infoCol}>
-          {/* Display title up to 2 lines without truncating or overlapping */}
+          {/* Medication Name */}
           <Text style={styles.medName} numberOfLines={2}>
             {name}
           </Text>
 
-          {/* Sub-row containing badge and edit icon */}
+          {/* Sub-row containing category / refill stock badge and edit icon */}
           <View style={styles.subBadgeRow}>
             {type === 'routine' ? (
-              <View style={[styles.stockBadge, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}>
-                <MaterialCommunityIcons name="heart-pulse" size={12} color={THEME.colors.primary} />
-                <Text style={[styles.stockText, { color: THEME.colors.primary }]}>Routine</Text>
+              <View style={[styles.stockBadge, { backgroundColor: '#EEF2FF' }]}>
+                <MaterialCommunityIcons name="heart-pulse" size={11} color="#4F46E5" />
+                <Text style={[styles.stockText, { color: '#4F46E5' }]}>Routine</Text>
               </View>
             ) : (
               <TouchableOpacity
@@ -106,7 +140,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
               >
                 <MaterialCommunityIcons
                   name="pill"
-                  size={12}
+                  size={11}
                   color={(stockCount ?? 30) <= 5 ? '#DC2626' : THEME.colors.primary}
                 />
                 <Text
@@ -119,14 +153,14 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
                 </Text>
               </TouchableOpacity>
             )}
-            <Feather name="edit-2" size={13} color={THEME.light.textMuted} style={{ marginLeft: 6 }} />
+            <Feather name="edit-2" size={12} color={THEME.light.textMuted} style={{ marginLeft: 6 }} />
           </View>
 
           <Text style={styles.dosageText}>
             {type === 'routine' ? dosage : `${dosage} • Take ${intakeCount} pill${intakeCount > 1 ? 's' : ''}`}
           </Text>
 
-          {/* STATUS LABEL */}
+          {/* Status Timing Label */}
           {isTaken ? (
             <Text style={styles.takenLabel}>
               {type === 'routine' ? `Completed at ${takenAt || 'scheduled time'}` : `Taken at ${takenAt || 'scheduled time'}`}
@@ -141,25 +175,25 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
         </View>
       </TouchableOpacity>
 
-      {/* RIGHT COLUMN: ACTION BUTTON (LOCKED IF FUTURE) */}
+      {/* RIGHT COLUMN: ACTION PILL BUTTON */}
       <View style={styles.rightCol}>
         {isFuture ? (
           <TouchableOpacity
-            style={styles.lockedBtn}
+            style={styles.pillBtnLocked}
             onPress={handleFuturePress}
             activeOpacity={0.7}
           >
-            <Feather name="lock" size={14} color={THEME.light.textMuted} style={{ marginRight: 4 }} />
-            <Text style={styles.lockedBtnText}>Locked</Text>
+            <Feather name="lock" size={13} color="#94A3B8" style={{ marginRight: 4 }} />
+            <Text style={styles.pillTextLocked}>Locked</Text>
           </TouchableOpacity>
         ) : isTaken ? (
-          <TouchableOpacity style={styles.unTakeBtn} onPress={onToggleTake} activeOpacity={0.7}>
-            <Ionicons name="refresh" size={16} color={THEME.light.textSecondary} style={{ marginRight: 4 }} />
-            <Text style={styles.unTakeText}>{type === 'routine' ? 'Undo' : 'Un-take'}</Text>
+          <TouchableOpacity style={styles.pillBtnTaken} onPress={onToggleTake} activeOpacity={0.7}>
+            <Ionicons name="checkmark-circle" size={15} color="#15803D" style={{ marginRight: 4 }} />
+            <Text style={styles.pillTextTaken}>{type === 'routine' ? 'Done' : 'Taken'}</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity style={styles.takeBtn} onPress={onToggleTake} activeOpacity={0.8}>
-            <Text style={styles.takeText}>{type === 'routine' ? 'Done' : 'Take'}</Text>
+          <TouchableOpacity style={styles.pillBtnTake} onPress={onToggleTake} activeOpacity={0.85}>
+            <Text style={styles.pillTextTake}>{type === 'routine' ? 'Done' : 'Take'}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -169,129 +203,121 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: THEME.light.surface,
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     padding: 16,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1.5,
-    borderColor: THEME.light.borderLight,
-    ...THEME.shadows.card,
+    // Soft clinical shadow without harsh borders
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   leftCol: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
-  statusIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  circularIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
   },
-  iconTaken: {
-    backgroundColor: THEME.colors.statusTaken,
-  },
-  iconPending: {
-    backgroundColor: '#E2E8F0',
-  },
-  iconFuture: {
-    backgroundColor: THEME.colors.primaryLight,
-  },
   infoCol: {
     flex: 1,
+    paddingRight: 6,
   },
   subBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 3,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap', // Wrap to next line if children run out of space
-    paddingRight: 10, // Prevent overlapping Take button
-  },
   medName: {
-    fontSize: THEME.fontSizes.lg,
+    fontSize: 16,
     fontWeight: '800',
-    color: THEME.light.textPrimary,
+    color: '#0F172A',
+    lineHeight: 22,
   },
   dosageText: {
-    fontSize: THEME.fontSizes.sm,
+    fontSize: 12,
     fontWeight: '600',
-    color: THEME.light.textSecondary,
+    color: '#64748B',
     marginTop: 2,
   },
   takenLabel: {
-    fontSize: THEME.fontSizes.xs,
+    fontSize: 11,
     fontWeight: '700',
-    color: THEME.colors.statusTaken,
-    marginTop: 4,
+    color: '#16A34A',
+    marginTop: 3,
   },
   notTakenLabel: {
-    fontSize: THEME.fontSizes.xs,
+    fontSize: 11,
     fontWeight: '700',
-    color: THEME.colors.statusNotTaken,
-    marginTop: 4,
+    color: '#DC2626',
+    marginTop: 3,
   },
   futureLabel: {
-    fontSize: THEME.fontSizes.xs,
+    fontSize: 11,
     fontWeight: '700',
     color: THEME.colors.royalBlue,
-    marginTop: 4,
+    marginTop: 3,
   },
   rightCol: {
-    marginLeft: 12,
+    marginLeft: 10,
   },
-  takeBtn: {
+  // Pill button styles
+  pillBtnTake: {
     backgroundColor: THEME.colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 22,
-    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: THEME.colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  pillTextTake: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  pillBtnTaken: {
+    backgroundColor: '#DCFCE7',
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  takeText: {
-    color: THEME.colors.textWhite,
-    fontSize: THEME.fontSizes.md,
+  pillTextTaken: {
+    color: '#15803D',
+    fontSize: 13,
     fontWeight: '800',
   },
-  unTakeBtn: {
+  pillBtnLocked: {
     backgroundColor: '#F1F5F9',
-    paddingVertical: 10,
+    paddingVertical: 9,
     paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: THEME.light.border,
   },
-  unTakeText: {
-    color: THEME.light.textSecondary,
-    fontSize: THEME.fontSizes.sm,
-    fontWeight: '700',
-  },
-  lockedBtn: {
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: THEME.light.borderLight,
-    opacity: 0.85,
-  },
-  lockedBtnText: {
-    color: THEME.light.textMuted,
-    fontSize: THEME.fontSizes.sm,
+  pillTextLocked: {
+    color: '#94A3B8',
+    fontSize: 13,
     fontWeight: '700',
   },
   imageThumbnailWrapper: {
@@ -301,18 +327,16 @@ const styles = StyleSheet.create({
   pillThumb: {
     width: 48,
     height: 48,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: THEME.light.border,
+    borderRadius: 24,
   },
   takenBadgeOverlay: {
     position: 'absolute',
-    bottom: -4,
-    right: -4,
-    backgroundColor: THEME.colors.statusTaken,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#16A34A',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
@@ -325,17 +349,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
-    marginLeft: 8,
   },
   stockBadgeNormal: {
-    backgroundColor: THEME.colors.primaryLight,
-    borderWidth: 1,
-    borderColor: THEME.light.border,
+    backgroundColor: '#EFF6FF',
   },
   stockBadgeLow: {
     backgroundColor: '#FEE2E2',
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
   },
   stockText: {
     fontSize: 11,

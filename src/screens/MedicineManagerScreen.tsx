@@ -110,8 +110,14 @@ export const MedicineManagerScreen: React.FC = () => {
 
   useEffect(() => {
     CaregiverRepo.getCaregiver().then((c) => setCaregiver(c));
-    const unsubscribe = CaregiverRepo.subscribe((updated) => setCaregiver(updated));
-    return unsubscribe;
+    const unsubscribeCaregiver = CaregiverRepo.subscribe((updated) => setCaregiver(updated));
+    const unsubscribeSub = SubscriptionService.subscribe((proStatus) => {
+      setIsPro(proStatus);
+    });
+    return () => {
+      unsubscribeCaregiver();
+      unsubscribeSub();
+    };
   }, []);
 
   // Request notification permissions on component mount

@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import Purchases, { PurchasesPackage, CustomerInfo, LOG_LEVEL } from 'react-native-purchases';
 
 const API_KEYS = {
   android: process.env.EXPO_PUBLIC_RC_ANDROID_KEY || 'goog_ljnYRHEnlYgxgoPbHMzpJbgpBkr',
@@ -10,16 +11,33 @@ const REVENUECAT_PUBLIC_API_KEY =
 
 export const ENTITLEMENT_ID = 'carebridge_pro';
 
+// Local cached state and listeners for real-time entitlement synchronization
+let isProCached: boolean = false;
+type EntitlementListener = (isPro: boolean, customerInfo?: CustomerInfo) => void;
+const entitlementListeners: Set<EntitlementListener> = new Set();
+
 export const RevenueCatService = {
   /**
-   * 1. Initialize Purchases SDK
+   * 1. Initialize Purchases SDK and register customer info listener
    */
   async init(): Promise<void> {
     try {
-      const Purchases = require('react-native-purchases').default;
-      Purchases.setLogLevel(Purchases.LOG_LEVEL?.DEBUG || 0);
+      Purchases.setLogLevel(LOG_LEVEL.DEBUG);
       await Purchases.configure({ apiKey: REVENUECAT_PUBLIC_API_KEY });
       console.log('[RevenueCat] SDK Initialized with Key:', REVENUECAT_PUBLIC_API_KEY);
+
+      // Automatically sync entitlement state when customer info updates from server
+      Purchases.addCustomerInfoUpdateListener((info: CustomerInfo) => {
+        isProCached = Boolean(info?.entitlements?.active[ENTITLEMENT_ID]);
+        console.log('[RevenueCat] Entitlement state updated automatically. Pro active:', isProCached);
+        entitlementListeners.forEach((listener) => {
+          try {
+            listener(isProCached, info);
+          } catch (err) {
+            console.warn('[RevenueCat Listener Callback Error]:', err);
+          }
+        });
+      });
     } catch (e: any) {
       console.log('[RevenueCat Init Warning]:', e?.message || e);
     }
@@ -28,9 +46,8 @@ export const RevenueCatService = {
   /**
    * 2. Fetch packages from default offering on server
    */
-  async getPackages(): Promise<any[]> {
+  async getPackages(): Promise<PurchasesPackage[]> {
     try {
-      const Purchases = require('react-native-purchases').default;
       const offerings = await Purchases.getOfferings();
       if (offerings.current && offerings.current.availablePackages.length > 0) {
         return offerings.current.availablePackages;
@@ -47,10 +64,8 @@ export const RevenueCatService = {
    */
   async trackAdImpression(networkName: string, adUnitId: string, revenue: number): Promise<void> {
     try {
-      const Purchases = require('react-native-purchases').default;
-
-      if (Purchases.adTracker?.trackAdRevenue) {
-        await Purchases.adTracker.trackAdRevenue({
+      if ((Purchases as any).adTracker?.trackAdRevenue) {
+        await (Purchases as any).adTracker.trackAdRevenue({
           networkName: networkName || 'Google AdMob',
           mediatorName: 'admob',
           adFormat: 'rewarded',
@@ -78,20 +93,37 @@ export const RevenueCatService = {
    */
   async isPro(): Promise<boolean> {
     try {
-      const Purchases = require('react-native-purchases').default;
       const customerInfo = await Purchases.getCustomerInfo();
-      return Boolean(customerInfo?.entitlements?.active[ENTITLEMENT_ID]);
+      isProCached = Boolean(customerInfo?.entitlements?.active[ENTITLEMENT_ID]);
+      return isProCached;
     } catch (e) {
-      return false;
+      return isProCached;
     }
+  },
+
+  /**
+   * Synchronous cached Pro status check
+   */
+  isProSync(): boolean {
+    return isProCached;
+  },
+
+  /**
+   * Subscribe to real-time Pro entitlement updates
+   */
+  subscribe(listener: EntitlementListener): () => void {
+    entitlementListeners.add(listener);
+    listener(isProCached);
+    return () => {
+      entitlementListeners.delete(listener);
+    };
   },
 
   /**
    * 5. Purchase specified package or default package
    */
-  async purchasePro(pkgToBuy?: any): Promise<boolean> {
+  async purchasePro(pkgToBuy?: PurchasesPackage): Promise<boolean> {
     try {
-      const Purchases = require('react-native-purchases').default;
       let targetPkg = pkgToBuy;
 
       if (!targetPkg) {
@@ -106,7 +138,9 @@ export const RevenueCatService = {
       }
 
       const { customerInfo } = await Purchases.purchasePackage(targetPkg);
-      return Boolean(customerInfo?.entitlements?.active[ENTITLEMENT_ID]);
+      const proActive = Boolean(customerInfo?.entitlements?.active[ENTITLEMENT_ID]);
+      isProCached = proActive;
+      return proActive;
     } catch (e: any) {
       if (!e.userCancelled) {
         console.error('[RevenueCat Purchase Error]', e);
@@ -120,9 +154,10 @@ export const RevenueCatService = {
    */
   async restorePurchases(): Promise<boolean> {
     try {
-      const Purchases = require('react-native-purchases').default;
       const customerInfo = await Purchases.restorePurchases();
-      return Boolean(customerInfo?.entitlements?.active[ENTITLEMENT_ID]);
+      const proActive = Boolean(customerInfo?.entitlements?.active[ENTITLEMENT_ID]);
+      isProCached = proActive;
+      return proActive;
     } catch (e) {
       return false;
     }
@@ -133,9 +168,9 @@ export const RevenueCatService = {
    */
   async resetToFree(): Promise<void> {
     try {
-      const Purchases = require('react-native-purchases').default;
       const resetId = `demo_guest_${Date.now()}`;
-      await Purchases.logIn(resetId);
+      const { customerInfo } = await Purchases.logIn(resetId);
+      isProCached = Boolean(customerInfo?.entitlements?.active[ENTITLEMENT_ID]);
       console.log('[RevenueCat] Reset to clean guest user:', resetId);
     } catch (e) {
       console.log('[RevenueCat Reset Error]:', e);

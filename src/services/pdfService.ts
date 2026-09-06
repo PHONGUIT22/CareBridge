@@ -1,7 +1,8 @@
 import * as Print from 'expo-print';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
+import { showAlertGlobal } from '../context/AlertContext';
 import { DailyLogItem } from '../database/logRepo';
 import { MedicineRecord } from '../database/medicineRepo';
 import { VitalsRepo } from '../database/vitalsRepo';
@@ -229,7 +230,11 @@ export const PdfService = {
           await FileSystem.writeAsStringAsync(createdUri, base64, {
             encoding: FileSystem.EncodingType.Base64,
           });
-          Alert.alert('Success', `Saved report "${cleanFileName}" to device.`);
+          showAlertGlobal({
+            title: 'Success',
+            message: `Saved report "${cleanFileName}" to device.`,
+            type: 'success',
+          });
           return;
         }
       } catch (e) {

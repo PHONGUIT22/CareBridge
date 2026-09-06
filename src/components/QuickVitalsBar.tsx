@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput } from 'react-native';
 import { THEME } from '../constants/theme';
 import { VitalsRepo, VitalsRecord } from '../database/vitalsRepo';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAlert } from '../context/AlertContext';
 
 interface QuickVitalsBarProps {
   dateStr: string;
 }
 
 export const QuickVitalsBar: React.FC<QuickVitalsBarProps> = ({ dateStr }) => {
+  const { showAlert } = useAlert();
   const [vitals, setVitals] = useState<VitalsRecord | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -48,7 +50,11 @@ export const QuickVitalsBar: React.FC<QuickVitalsBarProps> = ({ dateStr }) => {
     });
     setModalVisible(false);
     await loadVitals();
-    Alert.alert('Vitals Logged', 'Daily vital metrics updated successfully.');
+    showAlert({
+      title: 'Vitals Logged',
+      message: 'Daily vital metrics updated successfully.',
+      type: 'success',
+    });
   };
 
   const bpText = vitals?.systolic && vitals?.diastolic ? `${vitals.systolic}/${vitals.diastolic}` : '--/--';

@@ -10,11 +10,11 @@ import {
   Platform,
   ScrollView,
   StatusBar,
-  Alert,
 } from 'react-native';
 import { THEME } from '../constants/theme';
 import { CaregiverRepo } from '../database/caregiverRepo';
 import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { useAlert } from '../context/AlertContext';
 
 interface AuthWelcomeScreenProps {
   onAuthenticate?: () => void;
@@ -22,6 +22,7 @@ interface AuthWelcomeScreenProps {
 }
 
 export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ onAuthenticate, onContinue }) => {
+  const { showAlert } = useAlert();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,14 +32,16 @@ export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ onAuthenti
   // Handle email sign-in
   const handleEmailSignIn = async () => {
     if (!email.trim()) {
-      Alert.alert(
-        'Email Required',
-        'Please enter your caregiver email or continue without an account.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Use Demo Email', onPress: () => { setEmail('caregiver.demo@carebridge.health'); } },
-        ]
-      );
+      showAlert({
+        title: 'Email Required',
+        message: 'Please enter your caregiver email or continue without an account.',
+        type: 'warning',
+        cancelText: 'Cancel',
+        confirmText: 'Use Demo Email',
+        onConfirm: () => {
+          setEmail('caregiver.demo@carebridge.health');
+        },
+      });
       return;
     }
 

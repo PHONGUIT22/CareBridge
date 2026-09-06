@@ -8,6 +8,7 @@ import { THEME } from './src/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { RevenueCatService } from './src/services/revenuecat';
 import { AdService } from './src/services/admobService';
+import { AlertProvider } from './src/context/AlertContext';
 
 export default function App() {
   const [isDbReady, setIsDbReady] = useState<boolean>(false);
@@ -57,10 +58,12 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <StatusBar style="dark" backgroundColor={THEME.colors.background} />
-      <AppNavigator />
-    </NavigationContainer>
+    <AlertProvider>
+      <NavigationContainer>
+        <StatusBar style="dark" backgroundColor={THEME.colors.background} />
+        <AppNavigator />
+      </NavigationContainer>
+    </AlertProvider>
   );
 }
 

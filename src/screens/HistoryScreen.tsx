@@ -7,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Platform,
   StatusBar,
 } from 'react-native';
@@ -21,7 +20,7 @@ import { PdfService } from '../services/pdfService';
 import { SponsoredHealthBanner } from '../components/SponsoredHealthBanner';
 import { AdService } from '../services/admobService';
 import { formatToISODate } from '../utils/dateUtils';
-import { CustomAlertModal } from '../components/CustomAlertModal';
+import { useAlert } from '../context/AlertContext';
 import { SubscriptionService } from '../services/revenuecat';
 
 const CARD_PALETTES = [
@@ -33,10 +32,10 @@ const CARD_PALETTES = [
 ];
 
 export const HistoryScreen: React.FC = () => {
+  const { showAlert } = useAlert();
   const [logs, setLogs] = useState<DailyLogItem[]>([]);
   const [medicines, setMedicines] = useState<MedicineRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [deletingMed, setDeletingMed] = useState<{ id: string; name: string } | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -48,7 +47,7 @@ export const HistoryScreen: React.FC = () => {
       setLogs(allLogs);
       setMedicines(allMeds);
     } catch (error) {
-      console.error('Failed to load history', error);
+      console.error('Error loading history data:', error);
     } finally {
       setLoading(false);
     }
@@ -85,15 +84,17 @@ export const HistoryScreen: React.FC = () => {
   };
 
   const handleDeleteMedication = (id: string, name: string) => {
-    // Trigger custom modal instead of Alert.alert
-    setDeletingMed({ id, name });
-  };
-
-  const executeRealDelete = async () => {
-    if (!deletingMed) return;
-    await MedicineRepo.deleteMedicine(deletingMed.id);
-    setDeletingMed(null);
-    await loadData();
+    showAlert({
+      title: 'Delete Punch-Card',
+      message: `Are you sure you want to permanently delete "${name}" and all historical streaks?`,
+      type: 'danger',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        await MedicineRepo.deleteMedicine(id);
+        await loadData();
+      },
+    });
   };
 
   const handleExportPDF = async () => {
@@ -105,21 +106,18 @@ export const HistoryScreen: React.FC = () => {
     }
 
     // 2. If Free tier, show informative confirmation modal instead of blocking directly
-    Alert.alert(
-      'Export Clinical Report',
-      'Watch a short sponsored video to unlock your PDF report for free.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Watch Video & Export',
-          onPress: () => {
-            AdService.showRewardedAd('export_pdf', async () => {
-              await executeRealExport();
-            });
-          },
-        },
-      ]
-    );
+    showAlert({
+      title: 'Export Clinical Report',
+      message: 'Watch a short sponsored video to unlock your PDF report for free.',
+      type: 'info',
+      cancelText: 'Cancel',
+      confirmText: 'Watch Video & Export',
+      onConfirm: () => {
+        AdService.showRewardedAd('export_pdf', async () => {
+          await executeRealExport();
+        });
+      },
+    });
   };
 
   const executeRealExport = async () => {
@@ -130,7 +128,11 @@ export const HistoryScreen: React.FC = () => {
       ]);
       await PdfService.generateDoctorReport(allLogs, allMeds);
     } catch (err) {
-      Alert.alert('Error', 'Could not generate PDF report.');
+      showAlert({
+        title: 'Error',
+        message: 'Could not generate PDF report.',
+        type: 'danger',
+      });
     }
   };
 
@@ -199,18 +201,6 @@ export const HistoryScreen: React.FC = () => {
         {/* SPONSORED HEALTH BANNER (RevenueCat Catvertising) */}
         <SponsoredHealthBanner placement="history_footer" />
       </ScrollView>
-
-      {/* Luxury delete confirmation modal */}
-      <CustomAlertModal
-        visible={deletingMed !== null}
-        title="Delete Punch-Card"
-        message={`Are you sure you want to permanently delete "${deletingMed?.name}" and all historical streaks?`}
-        type="danger"
-        confirmText="Delete"
-        cancelText="Cancel"
-        onConfirm={executeRealDelete}
-        onCancel={() => setDeletingMed(null)}
-      />
     </SafeAreaView>
   );
 };

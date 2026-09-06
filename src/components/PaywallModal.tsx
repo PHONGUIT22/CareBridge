@@ -6,11 +6,11 @@ import {
   Modal,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { THEME } from '../constants/theme';
 import { SubscriptionService } from '../services/revenuecat';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAlert } from '../context/AlertContext';
 
 interface PaywallModalProps {
   visible: boolean;
@@ -23,6 +23,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
   onClose,
   onUnlocked,
 }) => {
+  const { showAlert } = useAlert();
   const [loading, setLoading] = useState(false);
   const [packages, setPackages] = useState<any[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<any | null>(null);
@@ -54,12 +55,21 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
     try {
       const success = await SubscriptionService.purchasePro(selectedPackage);
       if (success) {
-        Alert.alert('🎉 Welcome to Pro!', 'Unlimited prescriptions & Clinical PDF Export unlocked.');
+        showAlert({
+          title: '🎉 Welcome to Pro!',
+          message: 'Unlimited prescriptions & Clinical PDF Export unlocked.',
+          type: 'success',
+          confirmText: 'Great!',
+        });
         await onUnlocked();
         onClose();
       }
     } catch (error) {
-      Alert.alert('Notice', 'Purchase failed.');
+      showAlert({
+        title: 'Notice',
+        message: 'Purchase failed.',
+        type: 'warning',
+      });
     } finally {
       setLoading(false);
     }
@@ -67,7 +77,11 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
 
   const handleResetFree = async () => {
     await SubscriptionService.resetToFree();
-    Alert.alert('Reset Free Tier', 'App reverted to Free plan (Max 2 prescriptions).');
+    showAlert({
+      title: 'Reset Free Tier',
+      message: 'App reverted to Free plan (Max 2 prescriptions).',
+      type: 'info',
+    });
     await onUnlocked();
     onClose();
   };

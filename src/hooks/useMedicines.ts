@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Alert } from 'react-native';
+import { useAlert } from '../context/AlertContext';
 import { DailyLogItem, LogStatus, TimeGroup } from '../types';
 import { LogRepo } from '../database/logRepo';
 import { MedicineRepo } from '../database/medicineRepo';
@@ -24,6 +24,7 @@ function groupLogsByTime(items: DailyLogItem[]): TimeGroup[] {
 }
 
 export function useMedicines(selectedDate: Date) {
+  const { showAlert } = useAlert();
   const [logs, setLogs] = useState<DailyLogItem[]>([]);
   const [timeGroups, setTimeGroups] = useState<TimeGroup[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -101,11 +102,12 @@ export function useMedicines(selectedDate: Date) {
 
         // Trigger low-stock warning when 5 or fewer pills remain
         if (isTaking && remainingStock <= 5) {
-          Alert.alert(
-            'Medication Running Low!',
-            `${targetItem.name} has only ${remainingStock} pill${remainingStock === 1 ? '' : 's'} remaining. Please refill your medicine box to stay on schedule.`,
-            [{ text: 'Understood' }]
-          );
+          showAlert({
+            title: 'Medication Running Low!',
+            message: `${targetItem.name} has only ${remainingStock} pill${remainingStock === 1 ? '' : 's'} remaining. Please refill your medicine box to stay on schedule.`,
+            type: 'warning',
+            confirmText: 'Understood',
+          });
         }
       }
     } catch (err) {

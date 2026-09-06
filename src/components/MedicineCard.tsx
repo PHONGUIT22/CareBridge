@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { THEME } from '../constants/theme';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAlert } from '../context/AlertContext';
 
 interface MedicineCardProps {
   name: string;
@@ -32,12 +33,15 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
   onToggleTake,
   onPressCard,
 }) => {
+  const { showAlert } = useAlert();
+
   const handleFuturePress = () => {
-    Alert.alert(
-      'Upcoming Prescription',
-      'You cannot log medication for future dates in advance. Please wait until the scheduled day.',
-      [{ text: 'OK' }]
-    );
+    showAlert({
+      title: 'Upcoming Prescription',
+      message: 'You cannot log medication for future dates in advance. Please wait until the scheduled day.',
+      type: 'info',
+      confirmText: 'OK',
+    });
   };
 
   return (

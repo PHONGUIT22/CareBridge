@@ -10,7 +10,6 @@ import {
   Modal,
   Platform,
   StatusBar,
-  Alert,
   useWindowDimensions,
   Image,
   TextInput,
@@ -30,7 +29,7 @@ import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SubscriptionService } from '../services/revenuecat';
 import { AdService } from '../services/admobService';
 import { formatToISODate } from '../utils/dateUtils';
-import { CustomAlertModal, AlertType } from '../components/CustomAlertModal';
+import { useAlert } from '../context/AlertContext';
 import { PaywallModal } from '../components/PaywallModal';
 
 const PRESET_MEDICINES = [
@@ -98,25 +97,9 @@ export const MedicineManagerScreen: React.FC = () => {
   const [selectedDays, setSelectedDays] = useState<string[]>(['ALL']);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  // Custom Alert Modal State
-  const [alertConfig, setAlertConfig] = useState<{
-    visible: boolean;
-    title: string;
-    message: string;
-    type: AlertType;
-    confirmText?: string;
-    cancelText?: string;
-    onConfirm: () => void;
-    onCancel?: () => void;
-  }>({
-    visible: false,
-    title: '',
-    message: '',
-    type: 'info',
-    onConfirm: () => {},
-  });
-
-  const closeAlert = () => setAlertConfig((prev) => ({ ...prev, visible: false }));
+  // Global Alert & Image Picker Modal States
+  const { showAlert } = useAlert();
+  const [isImagePickerModalVisible, setIsImagePickerModalVisible] = useState(false);
 
   const handleSelectType = (type: 'medication' | 'routine') => {
     setSelectedType(type);
@@ -174,7 +157,11 @@ export const MedicineManagerScreen: React.FC = () => {
     AdService.showRewardedAd('refill_stock', async () => {
       await MedicineRepo.refillMedicine(medicineId, 30);
       await refresh();
-      Alert.alert('Refilled!', `Successfully added 30 pills for "${name}".`);
+      showAlert({
+        title: 'Refilled!',
+        message: `Successfully added 30 pills for "${name}".`,
+        type: 'success',
+      });
     });
   };
 
@@ -214,45 +201,41 @@ export const MedicineManagerScreen: React.FC = () => {
   };
 
   const handlePickImage = () => {
-    Alert.alert(
-      'Pill Photo (Visual ID)',
-      'Take a photo of your actual pill so seniors can identify it easily.',
-      [
-        {
-          text: 'Take Photo',
-          onPress: async () => {
-            const { status } = await ImagePicker.requestCameraPermissionsAsync();
-            if (status !== 'granted') {
-              Alert.alert('Permission needed', 'Camera access is required.');
-              return;
-            }
-            const result = await ImagePicker.launchCameraAsync({
-              allowsEditing: true,
-              aspect: [1, 1],
-              quality: 0.6,
-            });
-            if (!result.canceled && result.assets[0]?.uri) {
-              setSelectedImage(result.assets[0].uri);
-            }
-          },
-        },
-        {
-          text: 'Choose from Gallery',
-          onPress: async () => {
-            const result = await ImagePicker.launchImageLibraryAsync({
-              mediaTypes: ['images'],
-              allowsEditing: true,
-              aspect: [1, 1],
-              quality: 0.6,
-            });
-            if (!result.canceled && result.assets[0]?.uri) {
-              setSelectedImage(result.assets[0].uri);
-            }
-          },
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+    setIsImagePickerModalVisible(true);
+  };
+
+  const handleLaunchCamera = async () => {
+    setIsImagePickerModalVisible(false);
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      showAlert({
+        title: 'Permission Needed',
+        message: 'Camera access is required to capture pill photos.',
+        type: 'warning',
+      });
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.6,
+    });
+    if (!result.canceled && result.assets[0]?.uri) {
+      setSelectedImage(result.assets[0].uri);
+    }
+  };
+
+  const handleLaunchGallery = async () => {
+    setIsImagePickerModalVisible(false);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.6,
+    });
+    if (!result.canceled && result.assets[0]?.uri) {
+      setSelectedImage(result.assets[0].uri);
+    }
   };
 
   const toggleDay = (day: string) => {
@@ -272,24 +255,20 @@ export const MedicineManagerScreen: React.FC = () => {
 
   const handleSaveMedicine = async () => {
     if (!selectedMedName.trim()) {
-      setAlertConfig({
-        visible: true,
+      showAlert({
         title: 'Missing Name',
         message: 'Please enter or choose a medication name before saving.',
         type: 'warning',
         confirmText: 'Got It',
-        onConfirm: closeAlert,
       });
       return;
     }
     if (!selectedDose.trim()) {
-      setAlertConfig({
-        visible: true,
+      showAlert({
         title: 'Missing Dosage',
         message: 'Please specify the dosage or target amount.',
         type: 'warning',
         confirmText: 'Got It',
-        onConfirm: closeAlert,
       });
       return;
     }
@@ -323,21 +302,18 @@ export const MedicineManagerScreen: React.FC = () => {
       await updateSubscriptionState();
       await refresh();
     } catch (error) {
-      setAlertConfig({
-        visible: true,
+      showAlert({
         title: 'Storage Error',
         message: 'Could not save item to local database.',
         type: 'danger',
         confirmText: 'Close',
-        onConfirm: closeAlert,
       });
     }
   };
 
   const handleDeleteMedicine = () => {
     if (!editingMedId) return;
-    setAlertConfig({
-      visible: true,
+    showAlert({
       title: 'Delete Prescription',
       message: `Are you sure you want to permanently delete "${selectedMedName}"?`,
       type: 'danger',
@@ -346,11 +322,9 @@ export const MedicineManagerScreen: React.FC = () => {
       onConfirm: async () => {
         await MedicineRepo.deleteMedicine(editingMedId);
         setIsModalVisible(false);
-        closeAlert();
         await updateSubscriptionState();
         await refresh();
       },
-      onCancel: closeAlert,
     });
   };
 
@@ -455,7 +429,11 @@ export const MedicineManagerScreen: React.FC = () => {
                       takenAt={item.takenAt}
                       onToggleTake={() => {
                         if (isFutureDate) {
-                          Alert.alert('Notice', 'Cannot take future medications in advance.');
+                          showAlert({
+                            title: 'Notice',
+                            message: 'Cannot take future medications in advance.',
+                            type: 'info',
+                          });
                           return;
                         }
                         onToggleTakeWithHaptic(item.logId, item.status);
@@ -762,17 +740,55 @@ export const MedicineManagerScreen: React.FC = () => {
         </View>
       </Modal>
 
-      {/* Luxury alert and confirmation modal */}
-      <CustomAlertModal
-        visible={alertConfig.visible}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        type={alertConfig.type}
-        confirmText={alertConfig.confirmText}
-        cancelText={alertConfig.cancelText}
-        onConfirm={alertConfig.onConfirm}
-        onCancel={alertConfig.onCancel}
-      />
+      {/* Pill Visual ID Image Picker Modal */}
+      <Modal
+        visible={isImagePickerModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsImagePickerModalVisible(false)}
+      >
+        <View style={styles.imagePickerBackdrop}>
+          <View style={styles.imagePickerCard}>
+            <View style={styles.imagePickerIconBadge}>
+              <Feather name="camera" size={26} color={THEME.colors.primary} />
+            </View>
+            <Text style={styles.imagePickerTitle}>Pill Photo (Visual ID)</Text>
+            <Text style={styles.imagePickerMessage}>
+              Take a photo of your actual pill so seniors can identify it easily.
+            </Text>
+
+            <View style={styles.imagePickerOptions}>
+              <TouchableOpacity
+                style={styles.imagePickerOptionBtn}
+                onPress={handleLaunchCamera}
+                activeOpacity={0.85}
+              >
+                <Feather name="camera" size={18} color="#FFFFFF" />
+                <Text style={styles.imagePickerOptionText}>Take Photo</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.imagePickerOptionBtn, styles.imagePickerGalleryBtn]}
+                onPress={handleLaunchGallery}
+                activeOpacity={0.85}
+              >
+                <Feather name="image" size={18} color={THEME.colors.textPrimary} />
+                <Text style={[styles.imagePickerOptionText, styles.imagePickerGalleryText]}>
+                  Choose from Gallery
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.imagePickerCancelBtn}
+                onPress={() => setIsImagePickerModalVisible(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.imagePickerCancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Paywall modal */}
       <PaywallModal
@@ -1166,5 +1182,90 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: THEME.light.textMuted,
     marginBottom: 8,
+  },
+  imagePickerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  imagePickerCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 18,
+    elevation: 10,
+  },
+  imagePickerIconBadge: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  imagePickerTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginBottom: 8,
+    textAlign: 'center',
+    letterSpacing: 0.3,
+  },
+  imagePickerMessage: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: 20,
+    paddingHorizontal: 8,
+  },
+  imagePickerOptions: {
+    width: '100%',
+    gap: 10,
+  },
+  imagePickerOptionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: THEME.colors.primary,
+  },
+  imagePickerOptionText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  imagePickerGalleryBtn: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: THEME.light.borderLight,
+  },
+  imagePickerGalleryText: {
+    color: THEME.colors.textPrimary,
+  },
+  imagePickerCancelBtn: {
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 14,
+  },
+  imagePickerCancelText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#64748B',
   },
 });

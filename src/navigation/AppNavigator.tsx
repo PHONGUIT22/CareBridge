@@ -80,16 +80,16 @@ export const AppNavigator: React.FC = () => {
         tabBarButton: (props) => <SeniorFriendlyTabButton {...props} />,
       }}
     >
-      {/* TAB 1: TODAY SCHEDULE */}
+      {/* TAB 1: CAREGIVER SCHEDULE & MANAGEMENT */}
       <Tab.Screen
         name="Today"
         component={MedicineManagerScreen}
         options={{
-          tabBarLabel: 'Today',
+          tabBarLabel: 'Caregiver',
           tabBarIcon: ({ color, focused }: { color: string; size: number; focused: boolean }) => (
             <Ionicons
-              name={focused ? 'calendar' : 'calendar-outline'}
-              size={26}
+              name={focused ? 'shield-checkmark' : 'shield-checkmark-outline'}
+              size={25}
               color={color}
             />
           ),

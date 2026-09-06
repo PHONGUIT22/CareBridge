@@ -9,7 +9,7 @@ import {
   StatusBar,
   Image,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { THEME } from '../constants/theme';
 import { SeniorClock } from '../components/SeniorClock';
 import { LogRepo, DailyLogItem } from '../database/logRepo';
@@ -20,6 +20,7 @@ import * as Haptics from 'expo-haptics';
 import { announceMedication } from '../services/speechService';
 
 export const DeskModeScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const [logs, setLogs] = useState<DailyLogItem[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -128,13 +129,20 @@ export const DeskModeScreen: React.FC = () => {
       <View style={styles.topBar}>
         <View style={styles.ambientBadge}>
           <View style={styles.pulseDot} />
-          <Text style={styles.ambientText}>DESK STAND MODE</Text>
+          <Text style={styles.ambientText}>SENIOR NIGHTSTAND MODE</Text>
         </View>
 
-        <View style={styles.timeTag}>
-          <Ionicons name="moon" size={16} color="#38BDF8" style={{ marginRight: 4 }} />
-          <Text style={styles.timeTagText}>Nightstand</Text>
-        </View>
+        <TouchableOpacity
+          style={styles.caregiverSwitchBtn}
+          onPress={() => navigation.navigate('Today')}
+          activeOpacity={0.8}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityLabel="Switch to Caregiver Hub"
+        >
+          <Feather name="shield" size={13} color="#94A3B8" />
+          <Text style={styles.caregiverSwitchText}>Caregiver Hub</Text>
+          <Feather name="chevron-right" size={14} color="#64748B" />
+        </TouchableOpacity>
       </View>
 
       {/* 2. HERO GIANT CLOCK (Prominent focal point) */}
@@ -253,14 +261,21 @@ const styles = StyleSheet.create({
     color: '#38BDF8',
     letterSpacing: 1.2,
   },
-  timeTag: {
+  caregiverSwitchBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
-  timeTagText: {
+  caregiverSwitchText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#CBD5E1',
   },
   clockSection: {
     flex: 1,

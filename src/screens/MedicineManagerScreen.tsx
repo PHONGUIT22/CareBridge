@@ -16,14 +16,14 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { THEME } from '../constants/theme';
 import { CalendarStrip } from '../components/CalendarStrip';
 import { FullMonthCalendarModal } from '../components/FullMonthCalendarModal';
 import { MedicineCard } from '../components/MedicineCard';
 import { DoseNoteModal } from '../components/DoseNoteModal';
 import { SeniorClock } from '../components/SeniorClock';
-import { QuickVitalsBar } from '../components/QuickVitalsBar';
+import { RecordVitalsModal } from '../components/QuickVitalsBar';
 import { useMedicines } from '../hooks/useMedicines';
 import { MedicineRepo } from '../database/medicineRepo';
 import { LogRepo, DailyLogItem } from '../database/logRepo';
@@ -106,6 +106,7 @@ const adjustTimeMinutes = (timeStr: string, deltaMinutes: number): string => {
 const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
 export const MedicineManagerScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const { timeGroups, loading, refresh, handleToggleTake } = useMedicines(selectedDate);
 
@@ -127,6 +128,7 @@ export const MedicineManagerScreen: React.FC = () => {
   const [medsCount, setMedsCount] = useState(0);
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const [isMonthModalOpen, setIsMonthModalOpen] = useState(false);
+  const [isVitalsModalOpen, setIsVitalsModalOpen] = useState(false);
   const [activeLogForNote, setActiveLogForNote] = useState<DailyLogItem | null>(null);
 
   // Caregiver Profile State (synced from local SQLite)
@@ -191,19 +193,6 @@ export const MedicineManagerScreen: React.FC = () => {
     if (hour < 12) return 'Good Morning';
     if (hour < 18) return 'Good Afternoon';
     return 'Good Evening';
-  };
-
-  const getVitalsSummary = () => {
-    if (vitals?.systolic && vitals?.diastolic) {
-      return `BP: ${vitals.systolic}/${vitals.diastolic} mmHg`;
-    }
-    if (vitals?.bloodSugar) {
-      return `Sugar: ${vitals.bloodSugar} mg/dL`;
-    }
-    if (vitals?.heartRate) {
-      return `Heart Rate: ${vitals.heartRate} BPM`;
-    }
-    return 'Vitals: Stable Range';
   };
 
   const handleSelectType = (type: 'medication' | 'routine') => {
@@ -459,7 +448,10 @@ export const MedicineManagerScreen: React.FC = () => {
       <View style={styles.topHeader}>
         <View style={styles.headerLeft}>
           <View style={styles.headerGreetingRow}>
-            <Text style={styles.subGreeting}>DAILY SCHEDULE</Text>
+            <View style={styles.caregiverModeBadge}>
+              <Feather name="shield" size={10} color="#1E40AF" />
+              <Text style={styles.caregiverModeText}>CAREGIVER VIEW</Text>
+            </View>
             <View style={styles.caregiverBadge}>
               <Feather name="user-check" size={10} color={THEME.colors.royalBlue} />
               <Text style={styles.caregiverBadgeText} numberOfLines={1} ellipsizeMode="tail">
@@ -473,6 +465,17 @@ export const MedicineManagerScreen: React.FC = () => {
         </View>
 
         <View style={styles.headerRightActions}>
+          <TouchableOpacity
+            style={styles.deskModeQuickBtn}
+            onPress={() => navigation.navigate('DeskMode')}
+            activeOpacity={0.8}
+            hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+            accessibilityLabel="Switch to Senior Desk Clock"
+          >
+            <Ionicons name="moon" size={13} color="#0369A1" />
+            <Text style={styles.deskModeQuickText}>Desk</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.proButton, isPro ? styles.proButtonActive : styles.proButtonFree]}
             onPress={() => setIsPaywallOpen(true)}
@@ -497,6 +500,7 @@ export const MedicineManagerScreen: React.FC = () => {
             style={styles.headerAddButton}
             onPress={openAddModal}
             activeOpacity={0.8}
+            hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
           >
             <Feather name="plus" size={20} color={THEME.colors.textWhite} />
           </TouchableOpacity>
@@ -528,11 +532,6 @@ export const MedicineManagerScreen: React.FC = () => {
                 ? 'No medications scheduled today'
                 : `${takenCount} of ${totalCount} doses completed`}
             </Text>
-
-            <View style={styles.heroVitalsBadge}>
-              <Ionicons name="heart-circle" size={15} color="#93C5FD" />
-              <Text style={styles.heroVitalsText}>{getVitalsSummary()}</Text>
-            </View>
           </View>
 
           <View style={styles.heroRight}>
@@ -541,6 +540,58 @@ export const MedicineManagerScreen: React.FC = () => {
               <Text style={styles.complianceLabel}>ADHERENCE</Text>
             </View>
           </View>
+        </View>
+
+        {/* EMBEDDED COMPACT VITALS & BIOMETRICS BAR */}
+        <View style={styles.heroVitalsBar}>
+          <TouchableOpacity
+            style={styles.heroVitalChip}
+            onPress={() => setIsVitalsModalOpen(true)}
+            activeOpacity={0.8}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          >
+            <MaterialCommunityIcons name="heart-pulse" size={13} color="#FCA5A5" />
+            <Text style={styles.heroVitalValue}>
+              {vitals?.systolic && vitals?.diastolic ? `${vitals.systolic}/${vitals.diastolic}` : '--/--'}
+            </Text>
+            <Text style={styles.heroVitalLabel}>BP</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.heroVitalChip}
+            onPress={() => setIsVitalsModalOpen(true)}
+            activeOpacity={0.8}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          >
+            <MaterialCommunityIcons name="water-percent" size={13} color="#93C5FD" />
+            <Text style={styles.heroVitalValue}>
+              {vitals?.bloodSugar ? `${vitals.bloodSugar}` : '--'}
+            </Text>
+            <Text style={styles.heroVitalLabel}>Sugar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.heroVitalChip}
+            onPress={() => setIsVitalsModalOpen(true)}
+            activeOpacity={0.8}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          >
+            <Feather name="activity" size={12} color="#86EFAC" />
+            <Text style={styles.heroVitalValue}>
+              {vitals?.heartRate ? `${vitals.heartRate}` : '--'}
+            </Text>
+            <Text style={styles.heroVitalLabel}>BPM</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.heroLogVitalsBtn}
+            onPress={() => setIsVitalsModalOpen(true)}
+            activeOpacity={0.8}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          >
+            <Feather name="edit-2" size={11} color="#FFFFFF" />
+            <Text style={styles.heroLogVitalsText}>+ Log</Text>
+          </TouchableOpacity>
         </View>
       </LinearGradient>
 
@@ -552,9 +603,6 @@ export const MedicineManagerScreen: React.FC = () => {
           onOpenMonthModal={() => setIsMonthModalOpen(true)}
         />
       </View>
-
-      {/* 3. QUICK VITALS BAR (PAWBLOOM DESIGN PATTERN) */}
-      <QuickVitalsBar dateStr={selectedDateStr} />
 
       {/* TWO-COLUMN LAYOUT FOR UNFOLDED Z FOLD / SINGLE COLUMN FOR STANDARD PHONE */}
       <View style={[styles.mainLayoutWrapper, isUnfoldedFold && styles.twoColumnLayout]}>
@@ -1047,6 +1095,14 @@ export const MedicineManagerScreen: React.FC = () => {
           }}
         />
       )}
+
+      {/* Daily Vitals & Biometrics Logging Modal */}
+      <RecordVitalsModal
+        visible={isVitalsModalOpen}
+        dateStr={selectedDateStr}
+        onClose={() => setIsVitalsModalOpen(false)}
+        onSaved={() => loadVitals(selectedDateStr)}
+      />
     </SafeAreaView>
   );
 };
@@ -1073,6 +1129,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     flexWrap: 'wrap',
+  },
+  caregiverModeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    gap: 3,
+  },
+  caregiverModeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#1E40AF',
+    letterSpacing: 0.6,
   },
   caregiverBadge: {
     flexDirection: 'row',
@@ -1107,6 +1178,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  deskModeQuickBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    height: 38,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    gap: 4,
+  },
+  deskModeQuickText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0369A1',
   },
   proButton: {
     flexDirection: 'row',
@@ -1202,20 +1289,52 @@ const styles = StyleSheet.create({
     color: '#E0E7FF',
     marginBottom: 8,
   },
-  heroVitalsBadge: {
+  heroVitalsBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.14)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     borderRadius: 12,
-    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    marginTop: 10,
+    gap: 6,
   },
-  heroVitalsText: {
-    fontSize: 11,
+  heroVitalChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 6,
+    gap: 4,
+    justifyContent: 'center',
+  },
+  heroVitalValue: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  heroVitalLabel: {
+    fontSize: 9,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#BFDBFE',
+    letterSpacing: 0.3,
+  },
+  heroLogVitalsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    gap: 4,
+  },
+  heroLogVitalsText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   heroRight: {
     alignItems: 'center',

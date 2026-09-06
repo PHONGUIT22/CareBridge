@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 110,
+    paddingBottom: 140,
   },
   cardWrapper: {
     position: 'relative',

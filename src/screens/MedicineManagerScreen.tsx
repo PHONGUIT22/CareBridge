@@ -35,14 +35,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { VitalsRepo, VitalsRecord } from '../database/vitalsRepo';
 
 const PRESET_MEDICINES = [
-  { name: 'Blood Pressure', icon: 'heart-pulse', defaultDose: '1 Tablet' },
-  { name: 'Advil / Pain', icon: 'pill', defaultDose: '200 mg' },
-  { name: 'Diabetes / Sugar', icon: 'water-percent', defaultDose: '500 mg' },
-  { name: 'Aspirin (Heart)', icon: 'heart', defaultDose: '81 mg' },
-  { name: 'Vitamin / Multi', icon: 'fruit-cherries', defaultDose: '1 Pill' },
+  { name: 'Amlodipine (Blood Pressure)', icon: 'heart-pulse', defaultDose: '5 mg' },
+  { name: 'Metformin (Blood Sugar)', icon: 'water-percent', defaultDose: '500 mg' },
+  { name: 'Aspirin Cardio', icon: 'heart', defaultDose: '81 mg' },
+  { name: 'Omega-3 Fish Oil', icon: 'fruit-cherries', defaultDose: '1000 mg' },
+  { name: 'Panadol Extra', icon: 'pill', defaultDose: '500 mg' },
+  { name: 'Calcium + D3', icon: 'bone', defaultDose: '600 mg' },
   { name: 'Eye Drops', icon: 'eye-outline', defaultDose: '2 Drops' },
-  { name: 'Panadol', icon: 'pill', defaultDose: '500 mg' },
-  { name: 'Calcium / Bones', icon: 'bone', defaultDose: '600 mg' },
 ];
 
 // Presets for health and care routines
@@ -53,7 +52,7 @@ const PRESET_ROUTINES = [
   { name: 'Blood Glucose Test', icon: 'water-percent', defaultDose: '1 Strip', type: 'routine' },
 ];
 
-const PRESET_DOSES = ['1 Tablet', '200 mg', '500 mg', '1 Pill', '2 Drops', '1 Spoon'];
+const PRESET_DOSES = ['5 mg', '500 mg', '81 mg', '1000 mg', '600 mg', '1 Tablet', '1 Pill', '2 Drops'];
 const PRESET_ROUTINE_DOSES = ['1 Reading', '250 ml', '15 Mins', '30 Mins', '1 Strip', '1 Session'];
 const PRESET_TIMES = ['08:00', '12:00', '18:00', '21:00'];
 const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
@@ -110,7 +109,7 @@ export const MedicineManagerScreen: React.FC = () => {
   const [editingMedId, setEditingMedId] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<'medication' | 'routine'>('medication');
   const [selectedMedName, setSelectedMedName] = useState(PRESET_MEDICINES[0].name);
-  const [selectedDose, setSelectedDose] = useState('1 Tablet');
+  const [selectedDose, setSelectedDose] = useState(PRESET_MEDICINES[0].defaultDose);
   const [selectedTime, setSelectedTime] = useState('08:00');
   const [selectedDays, setSelectedDays] = useState<string[]>(['ALL']);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -219,7 +218,7 @@ export const MedicineManagerScreen: React.FC = () => {
     setEditingMedId(null);
     setSelectedType('medication');
     setSelectedMedName(PRESET_MEDICINES[0].name);
-    setSelectedDose('1 Tablet');
+    setSelectedDose(PRESET_MEDICINES[0].defaultDose);
     setSelectedTime('08:00');
     setSelectedDays(['ALL']);
     setSelectedImage(null);
@@ -1056,7 +1055,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 110,
+    paddingBottom: 140,
   },
   centerContainer: {
     alignItems: 'center',

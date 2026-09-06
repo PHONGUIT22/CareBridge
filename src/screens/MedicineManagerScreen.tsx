@@ -28,7 +28,6 @@ import { MedicineRepo } from '../database/medicineRepo';
 import { CaregiverRepo, CaregiverProfile } from '../database/caregiverRepo';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SubscriptionService } from '../services/revenuecat';
-import { AdService } from '../services/admobService';
 import { formatToISODate } from '../utils/dateUtils';
 import { useAlert } from '../context/AlertContext';
 import { PaywallModal } from '../components/PaywallModal';
@@ -193,15 +192,13 @@ export const MedicineManagerScreen: React.FC = () => {
     showAddFormAfterAd();
   };
 
-  const handleRefillPress = (medicineId: string, name: string) => {
-    AdService.showRewardedAd('refill_stock', async () => {
-      await MedicineRepo.refillMedicine(medicineId, 30);
-      await refresh();
-      showAlert({
-        title: 'Refilled!',
-        message: `Successfully added 30 pills for "${name}".`,
-        type: 'success',
-      });
+  const handleRefillPress = async (medicineId: string, name: string) => {
+    await MedicineRepo.refillMedicine(medicineId, 30);
+    await refresh();
+    showAlert({
+      title: 'Refilled!',
+      message: `Successfully added 30 pills for "${name}".`,
+      type: 'success',
     });
   };
 

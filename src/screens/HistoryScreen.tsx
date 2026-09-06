@@ -17,8 +17,6 @@ import { MedicineRepo, MedicineRecord } from '../database/medicineRepo';
 import { MedicationPunchCard } from '../components/MedicationPunchCard';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { PdfService } from '../services/pdfService';
-import { SponsoredHealthBanner } from '../components/SponsoredHealthBanner';
-import { AdService } from '../services/admobService';
 import { formatToISODate } from '../utils/dateUtils';
 import { useAlert } from '../context/AlertContext';
 import { SubscriptionService } from '../services/revenuecat';
@@ -98,25 +96,16 @@ export const HistoryScreen: React.FC = () => {
   };
 
   const handleExportPDF = async () => {
-    // 1. If user is PRO, immediately generate and export report without ads
     const isPro = await SubscriptionService.isPro();
     if (isPro) {
       await executeRealExport();
       return;
     }
 
-    // 2. If Free tier, show informative confirmation modal instead of blocking directly
     showAlert({
-      title: 'Export Clinical Report',
-      message: 'Watch a short sponsored video to unlock your PDF report for free.',
-      type: 'info',
-      cancelText: 'Cancel',
-      confirmText: 'Watch Video & Export',
-      onConfirm: () => {
-        AdService.showRewardedAd('export_pdf', async () => {
-          await executeRealExport();
-        });
-      },
+      title: 'Pro Required',
+      message: 'Upgrade to CareBridge Pro to export Clinical PDF Reports.',
+      type: 'warning',
     });
   };
 
@@ -197,9 +186,6 @@ export const HistoryScreen: React.FC = () => {
             );
           })
         )}
-
-        {/* SPONSORED HEALTH BANNER (RevenueCat Catvertising) */}
-        <SponsoredHealthBanner placement="history_footer" />
       </ScrollView>
     </SafeAreaView>
   );

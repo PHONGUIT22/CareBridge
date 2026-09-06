@@ -7,7 +7,6 @@ import { initDB } from './src/database/db';
 import { THEME } from './src/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { RevenueCatService } from './src/services/revenuecat';
-import { AdService } from './src/services/admobService';
 import { AlertProvider } from './src/context/AlertContext';
 
 export default function App() {
@@ -15,9 +14,8 @@ export default function App() {
   const [dbError, setDbError] = useState<string | null>(null);
 
   useEffect(() => {
-    // 1. Initialize RevenueCat & AdMob SDKs immediately on app startup
+    // 1. Initialize RevenueCat SDK immediately on app startup
     RevenueCatService.init();
-    AdService.init();
 
     // 2. Bootstrap local SQLite database
     async function bootstrapDatabase() {

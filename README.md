@@ -94,7 +94,6 @@ CareBridge/
 │   │   ├── EditorialHeroScreen.tsx # Onboarding & introduction
 │   │   └── AuthWelcomeScreen.tsx  # Caregiver portal & guest sign-in
 │   ├── services/
-│   │   ├── admobService.ts        # Google AdMob rewarded & banner ads
 │   │   ├── revenuecat.ts          # RevenueCat In-App Purchases & Pro state
 │   │   └── pdfService.ts          # Clinical PDF document generator
 │   └── utils/

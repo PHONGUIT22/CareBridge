@@ -164,25 +164,17 @@ export const HistoryScreen: React.FC = () => {
             const primaryTime = med.reminderTimes[0] || '08:00';
 
             return (
-              <View key={med.id} style={styles.cardWrapper}>
-                <MedicationPunchCard
-                  medicineName={med.name}
-                  dosage={med.dosage}
-                  time={primaryTime}
-                  createdAt={med.createdAt}
-                  themeColor={color}
-                  logs={logs}
-                  onToggleToday={() => handleToggleTodayFromHistory(med.id)}
-                />
-
-                <TouchableOpacity
-                  style={styles.deleteBadgeBtn}
-                  onPress={() => handleDeleteMedication(med.id, med.name)}
-                  activeOpacity={0.7}
-                >
-                  <Feather name="trash-2" size={14} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
+              <MedicationPunchCard
+                key={med.id}
+                medicineName={med.name}
+                dosage={med.dosage}
+                time={primaryTime}
+                createdAt={med.createdAt}
+                themeColor={color}
+                logs={logs}
+                onToggleToday={() => handleToggleTodayFromHistory(med.id)}
+                onDelete={() => handleDeleteMedication(med.id, med.name)}
+              />
             );
           })
         )}
@@ -238,21 +230,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 140,
   },
-  cardWrapper: {
-    position: 'relative',
-  },
-  deleteBadgeBtn: {
-    position: 'absolute',
-    top: 14,
-    right: 58,
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
+
   centerContainer: {
     alignItems: 'center',
     justifyContent: 'center',

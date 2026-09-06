@@ -19,6 +19,7 @@ interface MedicationPunchCardProps {
   themeColor?: string;
   logs: DailyLogItem[];
   onToggleToday?: () => void;
+  onDelete?: () => void;
 }
 
 const CELL_SIZE = 18;
@@ -33,6 +34,7 @@ export const MedicationPunchCard: React.FC<MedicationPunchCardProps> = ({
   themeColor = THEME.colors.primary,
   logs,
   onToggleToday,
+  onDelete,
 }) => {
   const scrollRef = useRef<ScrollView>(null);
 
@@ -165,20 +167,32 @@ export const MedicationPunchCard: React.FC<MedicationPunchCardProps> = ({
           </Text>
         </View>
 
-        <TouchableOpacity
-          style={[
-            styles.todayCheckBtn,
-            isTodayTaken ? styles.todayCheckBtnActive : styles.todayCheckBtnInactive,
-          ]}
-          onPress={onToggleToday}
-          activeOpacity={0.8}
-        >
-          <Feather
-            name={isTodayTaken ? 'check' : 'circle'}
-            size={20}
-            color="#FFFFFF"
-          />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          {onDelete && (
+            <TouchableOpacity
+              style={styles.deleteBtn}
+              onPress={onDelete}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Feather name="trash-2" size={15} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={[
+              styles.todayCheckBtn,
+              isTodayTaken ? styles.todayCheckBtnActive : styles.todayCheckBtnInactive,
+            ]}
+            onPress={onToggleToday}
+            activeOpacity={0.8}
+          >
+            <Feather
+              name={isTodayTaken ? 'check' : 'circle'}
+              size={20}
+              color="#FFFFFF"
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* MATRIX GRID: ALIGNED M - T - W - T - F - S - S */}
@@ -272,6 +286,7 @@ const styles = StyleSheet.create({
   },
   nameCol: {
     flex: 1,
+    marginRight: 10,
   },
   medName: {
     fontSize: 18,
@@ -284,6 +299,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.85)',
     marginTop: 2,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  deleteBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   todayCheckBtn: {
     width: 38,

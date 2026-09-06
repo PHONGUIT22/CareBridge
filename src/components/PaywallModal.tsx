@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -24,11 +24,35 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
   onUnlocked,
 }) => {
   const [loading, setLoading] = useState(false);
+  const [packages, setPackages] = useState<any[]>([]);
+  const [selectedPackage, setSelectedPackage] = useState<any | null>(null);
+  const [fetchingPackages, setFetchingPackages] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      fetchOfferings();
+    }
+  }, [visible]);
+
+  const fetchOfferings = async () => {
+    setFetchingPackages(true);
+    try {
+      const pkgs = await SubscriptionService.getPackages();
+      setPackages(pkgs);
+      // Prioritize $rc_monthly or default to first available package
+      const monthlyPkg = pkgs.find((p) => p.identifier === '$rc_monthly') || pkgs[0] || null;
+      setSelectedPackage(monthlyPkg);
+    } catch (error) {
+      console.log('[PaywallModal] Failed to load packages:', error);
+    } finally {
+      setFetchingPackages(false);
+    }
+  };
 
   const handlePurchase = async () => {
     setLoading(true);
     try {
-      const success = await SubscriptionService.purchasePro();
+      const success = await SubscriptionService.purchasePro(selectedPackage);
       if (success) {
         Alert.alert('🎉 Welcome to Pro!', 'Unlimited prescriptions & Clinical PDF Export unlocked.');
         await onUnlocked();
@@ -83,13 +107,55 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
             </View>
           </View>
 
-          <View style={styles.pricingBox}>
-            <View>
-              <Text style={styles.pricingTitle}>Pro Family Plan</Text>
-              <Text style={styles.pricingSub}>7-Day Free Trial, then $4.99/mo</Text>
+          {/* DYNAMIC SERVER PRICING OPTIONS */}
+          {fetchingPackages ? (
+            <View style={styles.loadingBox}>
+              <ActivityIndicator size="small" color={THEME.colors.primary} />
+              <Text style={styles.loadingBoxText}>Loading live pricing from RevenueCat...</Text>
             </View>
-            <Text style={styles.priceTag}>$4.99</Text>
-          </View>
+          ) : packages.length > 0 ? (
+            <View style={styles.packagesContainer}>
+              {packages.map((pkg) => {
+                const isSelected = selectedPackage?.identifier === pkg.identifier;
+                const pkgTitle = pkg.product?.title || (pkg.identifier === '$rc_monthly' ? 'Monthly Pro Plan' : 'CareBridge Pro');
+                const pkgPrice = pkg.product?.priceString || '$4.99';
+                const pkgSub = pkg.product?.description || 'Unlimited punch-cards, PDF export & family alerts';
+
+                return (
+                  <TouchableOpacity
+                    key={pkg.identifier}
+                    style={[
+                      styles.pricingBox,
+                      isSelected && styles.pricingBoxSelected,
+                    ]}
+                    onPress={() => setSelectedPackage(pkg)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.pricingLeft}>
+                      <View style={styles.planHeaderRow}>
+                        <Text style={styles.pricingTitle}>{pkgTitle}</Text>
+                        {pkg.identifier === '$rc_monthly' && (
+                          <View style={styles.popularBadge}>
+                            <Text style={styles.popularBadgeText}>POPULAR</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.pricingSub}>{pkgSub}</Text>
+                    </View>
+                    <Text style={styles.priceTag}>{pkgPrice}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          ) : (
+            <View style={styles.pricingBox}>
+              <View style={styles.pricingLeft}>
+                <Text style={styles.pricingTitle}>Pro Monthly Plan</Text>
+                <Text style={styles.pricingSub}>7-Day Free Trial, then $4.99/mo</Text>
+              </View>
+              <Text style={styles.priceTag}>$4.99</Text>
+            </View>
+          )}
 
           {/* PRO UPGRADE BUTTON */}
           <TouchableOpacity
@@ -175,6 +241,25 @@ const styles = StyleSheet.create({
     color: THEME.light.textPrimary,
     flex: 1,
   },
+  packagesContainer: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  loadingBox: {
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: THEME.colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  loadingBoxText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: THEME.colors.primary,
+  },
   pricingBox: {
     backgroundColor: THEME.colors.primaryLight,
     borderWidth: 2,
@@ -185,6 +270,31 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+  },
+  pricingBoxSelected: {
+    borderColor: THEME.colors.primary,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 2.5,
+  },
+  pricingLeft: {
+    flex: 1,
+    marginRight: 10,
+  },
+  planHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  popularBadge: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  popularBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
   },
   pricingTitle: {
     fontSize: 16,

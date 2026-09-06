@@ -21,6 +21,7 @@ export interface IntakeLog {
   time: string;            // Scheduled time slot: HH:mm
   status: LogStatus;
   takenAt?: string;        // Actual taken time: HH:mm
+  notes?: string;
   createdAt: string;
 }
 
@@ -34,6 +35,7 @@ export interface DailyLogItem {
   status: LogStatus;
   isTaken: boolean;
   takenAt?: string;
+  notes?: string;
   imageUri?: string;
   stockCount?: number;
   type?: 'medication' | 'routine';

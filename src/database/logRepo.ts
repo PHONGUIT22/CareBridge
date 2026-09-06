@@ -13,6 +13,7 @@ export interface DailyLogItem {
   status: LogStatus;
   isTaken: boolean;
   takenAt?: string;
+  notes?: string;
   imageUri?: string;
   stockCount?: number;
   type?: 'medication' | 'routine';
@@ -91,7 +92,8 @@ export const LogRepo = {
         l.time as scheduledTime,
         l.date as date,
         l.status as status,
-        l.taken_at as takenAt
+        l.taken_at as takenAt,
+        l.notes as notes
       FROM intake_logs l
       INNER JOIN medicines m ON l.medicine_id = m.id
       WHERE l.date = ?
@@ -110,6 +112,7 @@ export const LogRepo = {
       date: string;
       status: LogStatus;
       takenAt: string | null;
+      notes: string | null;
     }>(query, [dateStr]);
 
     return rows.map((r) => ({
@@ -125,6 +128,7 @@ export const LogRepo = {
       status: r.status,
       isTaken: r.status === 'taken',
       takenAt: r.takenAt || undefined,
+      notes: r.notes || undefined,
     }));
   },
 
@@ -166,7 +170,8 @@ export const LogRepo = {
         l.time as scheduledTime,
         l.date as date,
         l.status as status,
-        l.taken_at as takenAt
+        l.taken_at as takenAt,
+        l.notes as notes
       FROM intake_logs l
       INNER JOIN medicines m ON l.medicine_id = m.id
       ORDER BY l.date DESC, l.time ASC
@@ -183,6 +188,7 @@ export const LogRepo = {
       date: string;
       status: LogStatus;
       takenAt: string | null;
+      notes: string | null;
     }>(query);
 
     return rows.map((r) => ({
@@ -197,6 +203,15 @@ export const LogRepo = {
       status: r.status,
       isTaken: r.status === 'taken',
       takenAt: r.takenAt || undefined,
+      notes: r.notes || undefined,
     }));
+  },
+
+  /**
+   * Update clinical notes or side-effect tags for a medication intake log
+   */
+  async updateLogNotes(logId: string, notes: string): Promise<void> {
+    const db = await getDatabase();
+    await db.runAsync(`UPDATE intake_logs SET notes = ? WHERE id = ?`, [notes.trim(), logId]);
   },
 };

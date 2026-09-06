@@ -119,15 +119,16 @@ export async function seedDemoData(options?: DemoSeedOptions): Promise<void> {
           // TODAY: Morning 08:00 is taken, Midday 12:00 & Evening 20:00 are pending for live testing
           if (dose.time === '08:00') {
             const takenMinute = dose.medId === 'med_demo_amlodipine' ? '05' : '08';
+            const note = dose.medId === 'med_demo_amlodipine' ? 'Taken with breakfast' : 'Taken with food';
             await db.runAsync(
-              `INSERT INTO intake_logs (id, medicine_id, date, time, status, taken_at, created_at)
-               VALUES (?, ?, ?, ?, 'taken', ?, ?)`,
-              [logId, dose.medId, dateStr, dose.time, `08:${takenMinute}`, logCreatedAt]
+              `INSERT INTO intake_logs (id, medicine_id, date, time, status, taken_at, notes, created_at)
+               VALUES (?, ?, ?, ?, 'taken', ?, ?, ?)`,
+              [logId, dose.medId, dateStr, dose.time, `08:${takenMinute}`, note, logCreatedAt]
             );
           } else {
             await db.runAsync(
-              `INSERT INTO intake_logs (id, medicine_id, date, time, status, taken_at, created_at)
-               VALUES (?, ?, ?, ?, 'pending', NULL, ?)`,
+              `INSERT INTO intake_logs (id, medicine_id, date, time, status, taken_at, notes, created_at)
+               VALUES (?, ?, ?, ?, 'pending', NULL, NULL, ?)`,
               [logId, dose.medId, dateStr, dose.time, logCreatedAt]
             );
           }
@@ -145,8 +146,8 @@ export async function seedDemoData(options?: DemoSeedOptions): Promise<void> {
 
           if (isSkipped) {
             await db.runAsync(
-              `INSERT INTO intake_logs (id, medicine_id, date, time, status, taken_at, created_at)
-               VALUES (?, ?, ?, ?, 'skipped', NULL, ?)`,
+              `INSERT INTO intake_logs (id, medicine_id, date, time, status, taken_at, notes, created_at)
+               VALUES (?, ?, ?, ?, 'skipped', NULL, 'Missed dose', ?)`,
               [logId, dose.medId, dateStr, dose.time, logCreatedAt]
             );
           } else {
@@ -154,11 +155,17 @@ export async function seedDemoData(options?: DemoSeedOptions): Promise<void> {
             const minuteVariation = (offset * 3 + (dose.time === '08:00' ? 4 : dose.time === '12:00' ? 8 : 12)) % 15;
             const takenMin = parseInt(minStr, 10) + minuteVariation;
             const takenAt = `${hourStr}:${takenMin.toString().padStart(2, '0')}`;
+            const pastNote =
+              offset % 5 === 0
+                ? 'Taken with meal'
+                : offset % 7 === 0
+                ? 'Mild dizziness reported'
+                : 'No adverse symptoms';
 
             await db.runAsync(
-              `INSERT INTO intake_logs (id, medicine_id, date, time, status, taken_at, created_at)
-               VALUES (?, ?, ?, ?, 'taken', ?, ?)`,
-              [logId, dose.medId, dateStr, dose.time, takenAt, logCreatedAt]
+              `INSERT INTO intake_logs (id, medicine_id, date, time, status, taken_at, notes, created_at)
+               VALUES (?, ?, ?, ?, 'taken', ?, ?, ?)`,
+              [logId, dose.medId, dateStr, dose.time, takenAt, pastNote, logCreatedAt]
             );
           }
         }

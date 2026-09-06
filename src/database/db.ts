@@ -31,6 +31,7 @@ export async function initDB(): Promise<SQLite.SQLiteDatabase> {
       time TEXT NOT NULL,
       status TEXT NOT NULL CHECK(status IN ('pending', 'taken', 'skipped')),
       taken_at TEXT,
+      notes TEXT,
       created_at TEXT NOT NULL,
       FOREIGN KEY (medicine_id) REFERENCES medicines(id) ON DELETE CASCADE
     );
@@ -72,6 +73,13 @@ export async function initDB(): Promise<SQLite.SQLiteDatabase> {
   // Automatic migration if existing database does not have type column yet
   try {
     await dbInstance.execAsync(`ALTER TABLE medicines ADD COLUMN type TEXT DEFAULT 'medication';`);
+  } catch (e) {
+    // Column already exists, safe to ignore
+  }
+
+  // Automatic migration if existing database does not have notes in intake_logs yet
+  try {
+    await dbInstance.execAsync(`ALTER TABLE intake_logs ADD COLUMN notes TEXT;`);
   } catch (e) {
     // Column already exists, safe to ignore
   }

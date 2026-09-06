@@ -31,6 +31,7 @@ import { SubscriptionService } from '../services/revenuecat';
 import { AdService } from '../services/admobService';
 import { formatToISODate } from '../utils/dateUtils';
 import { CustomAlertModal, AlertType } from '../components/CustomAlertModal';
+import { PaywallModal } from '../components/PaywallModal';
 
 const PRESET_MEDICINES = [
   { name: 'Blood Pressure', icon: 'heart-pulse', defaultDose: '1 Tablet' },
@@ -76,6 +77,7 @@ export const MedicineManagerScreen: React.FC = () => {
   // Subscription State
   const [isPro, setIsPro] = useState(false);
   const [medsCount, setMedsCount] = useState(0);
+  const [isPaywallOpen, setIsPaywallOpen] = useState(false);
 
   // Caregiver Profile State (synced from local SQLite)
   const [caregiver, setCaregiver] = useState<CaregiverProfile>(() => CaregiverRepo.getCaregiverSync());
@@ -364,6 +366,24 @@ export const MedicineManagerScreen: React.FC = () => {
             {formattedDayTitle}
           </Text>
         </View>
+
+        <TouchableOpacity
+          style={{
+            backgroundColor: isPro ? '#DCFCE7' : '#FEF3C7',
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 12,
+            marginRight: 10,
+            borderWidth: 1,
+            borderColor: isPro ? '#86EFAC' : '#FDE68A',
+          }}
+          onPress={() => setIsPaywallOpen(true)}
+          activeOpacity={0.8}
+        >
+          <Text style={{ fontSize: 12, fontWeight: '800', color: isPro ? '#16A34A' : '#B45309' }}>
+            {isPro ? 'PRO ACTIVE' : 'UPGRADE PRO'}
+          </Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.headerAddButton}
@@ -746,6 +766,13 @@ export const MedicineManagerScreen: React.FC = () => {
         cancelText={alertConfig.cancelText}
         onConfirm={alertConfig.onConfirm}
         onCancel={alertConfig.onCancel}
+      />
+
+      {/* Paywall modal */}
+      <PaywallModal
+        visible={isPaywallOpen}
+        onClose={() => setIsPaywallOpen(false)}
+        onUnlocked={updateSubscriptionState}
       />
     </SafeAreaView>
   );

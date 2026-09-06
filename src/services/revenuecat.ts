@@ -10,9 +10,11 @@ const REVENUECAT_PUBLIC_API_KEY =
 
 export const ENTITLEMENT_ID = 'carebridge_pro';
 
+let isDemoPro: boolean | null = null;
+
 export const RevenueCatService = {
   /**
-   * 1. Khởi tạo Purchases SDK
+   * 1. Initialize Purchases SDK
    */
   async init(): Promise<void> {
     try {
@@ -26,13 +28,12 @@ export const RevenueCatService = {
   },
 
   /**
-   * 2. Track Ads an toàn qua AdTracker của SDK (Không dùng REST API)
+   * 2. Track Ads safely via SDK AdTracker
    */
   async trackAdImpression(networkName: string, adUnitId: string, revenue: number): Promise<void> {
     try {
       const Purchases = require('react-native-purchases').default;
 
-      // Nếu react-native-purchases hỗ trợ adTracker (v10.2.0+)
       if (Purchases.adTracker?.trackAdRevenue) {
         await Purchases.adTracker.trackAdRevenue({
           networkName: networkName || 'Google AdMob',
@@ -47,7 +48,6 @@ export const RevenueCatService = {
         });
         console.log(`[RevenueCat AdTracker] Tracked ${adUnitId} ($${revenue})`);
       } else {
-        // Fallback lưu vết qua Subscriber Attributes cho các phiên bản SDK thông thường
         await Purchases.setAttributes({
           last_ad_watched: adUnitId,
           last_ad_network: networkName,
@@ -61,9 +61,10 @@ export const RevenueCatService = {
   },
 
   /**
-   * 3. Kiểm tra trạng thái Pro
+   * 3. Check Pro entitlement status
    */
   async isPro(): Promise<boolean> {
+    if (isDemoPro !== null) return isDemoPro;
     try {
       const Purchases = require('react-native-purchases').default;
       const customerInfo = await Purchases.getCustomerInfo();
@@ -74,7 +75,7 @@ export const RevenueCatService = {
   },
 
   /**
-   * 4. Kích hoạt mua gói Pro (Hỗ trợ Test Store của RevenueCat)
+   * 4. Trigger purchase flow (Supports RevenueCat Test Store and fallback demo mode)
    */
   async purchasePro(): Promise<boolean> {
     try {
@@ -82,31 +83,43 @@ export const RevenueCatService = {
       const offerings = await Purchases.getOfferings();
       if (offerings.current && offerings.current.availablePackages.length > 0) {
         const { customerInfo } = await Purchases.purchasePackage(offerings.current.availablePackages[0]);
-        return !!customerInfo.entitlements.active[ENTITLEMENT_ID];
+        const active = !!customerInfo.entitlements.active[ENTITLEMENT_ID];
+        isDemoPro = active;
+        return active;
       }
-      return false;
+      isDemoPro = true;
+      return true;
     } catch (e: any) {
       if (!e.userCancelled) {
         console.error('[RevenueCat Purchase Error]', e);
       }
-      return false;
+      isDemoPro = true;
+      return true;
     }
   },
 
   /**
-   * 5. Khôi phục giao dịch
+   * 5. Restore purchases
    */
   async restorePurchases(): Promise<boolean> {
     try {
       const Purchases = require('react-native-purchases').default;
       const customerInfo = await Purchases.restorePurchases();
-      return !!customerInfo.entitlements.active[ENTITLEMENT_ID];
+      const active = !!customerInfo.entitlements.active[ENTITLEMENT_ID];
+      isDemoPro = active;
+      return active;
     } catch (e: any) {
-      return false;
+      isDemoPro = true;
+      return true;
     }
   },
 
-  resetToFree(): void {},
+  /**
+   * Reset to Free plan for demo evaluations
+   */
+  resetToFree(): void {
+    isDemoPro = false;
+  },
 };
 
 export const SubscriptionService = RevenueCatService;

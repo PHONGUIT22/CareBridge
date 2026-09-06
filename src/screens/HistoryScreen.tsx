@@ -22,6 +22,7 @@ import { SponsoredHealthBanner } from '../components/SponsoredHealthBanner';
 import { AdService } from '../services/admobService';
 import { formatToISODate } from '../utils/dateUtils';
 import { CustomAlertModal } from '../components/CustomAlertModal';
+import { SubscriptionService } from '../services/revenuecat';
 
 const CARD_PALETTES = [
   '#1E3A8A', // Medical Navy
@@ -95,10 +96,30 @@ export const HistoryScreen: React.FC = () => {
     await loadData();
   };
 
-  const handleExportPDF = () => {
-    AdService.showRewardedAd('export_pdf', async () => {
+  const handleExportPDF = async () => {
+    // 1. If user is PRO, immediately generate and export report without ads
+    const isPro = await SubscriptionService.isPro();
+    if (isPro) {
       await executeRealExport();
-    });
+      return;
+    }
+
+    // 2. If Free tier, show informative confirmation modal instead of blocking directly
+    Alert.alert(
+      'Export Clinical Report',
+      'Watch a short sponsored video to unlock your PDF report for free.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Watch Video & Export',
+          onPress: () => {
+            AdService.showRewardedAd('export_pdf', async () => {
+              await executeRealExport();
+            });
+          },
+        },
+      ]
+    );
   };
 
   const executeRealExport = async () => {

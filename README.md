@@ -8,7 +8,7 @@
 [![RevenueCat](https://img.shields.io/badge/In--App%20Purchases-RevenueCat-E74C3C.svg)](https://www.revenuecat.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> **Shipathon 2026 Submission**  
+> **Shipathon 2026 Submission — Next Gen Award (Student Track)**  
 > *Empowering elderly individuals and their caregivers with an accessible, high-contrast, local-first medication manager that bridges clinical compliance with human empathy.*
 
 ---
@@ -27,6 +27,8 @@ As our population ages, **polypharmacy** (taking 4+ medications daily) becomes a
 ---
 
 ## ⚖️ Hackathon Judges & Evaluators Setup
+
+> **Zero-Config Notice:** The app includes hardcoded public fallback test keys in `services/revenuecat.ts`. You can skip creating `.env` and run the project immediately out-of-the-box.
 
 For hackathon evaluation and review, CareBridge includes RevenueCat test credentials pre-configured in `.env.example`:
 
@@ -79,6 +81,7 @@ For hackathon evaluation and review, CareBridge includes RevenueCat test credent
 ### 6. 💎 In-App Purchases & CareBridge Pro (RevenueCat)
 - **RevenueCat Integration:** Native In-App Purchase paywall unlocking Unlimited Prescriptions, Multi-month PDF Exports, and Deep Analytics.
 - **Offline Entitlement Cache:** Pro status is cached locally so patients never lose access to their critical medical tools during network outages.
+- **Interactive Judge Demo Mode:** The Paywall modal includes a one-tap `[Judge Demo] Reset to Free Plan` button, allowing evaluators to instantly switch back to the Free tier (2-prescription limit) and test paywall triggers repeatedly without clearing app data.
 
 ---
 

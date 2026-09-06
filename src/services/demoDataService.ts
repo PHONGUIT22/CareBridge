@@ -86,15 +86,22 @@ export async function seedDemoData(options?: DemoSeedOptions): Promise<void> {
       const dateStr = formatToISODate(targetDate);
       const dayIndex = days - 1 - offset; // 0 (30 days ago) to 29 (today)
 
-      // Biometric Vitals (Smooth sinusoidal / cosinusoidal metrics)
-      // Systolic BP: 115 - 125 mmHg
-      const systolic = 120 + Math.round(Math.sin(dayIndex) * 5);
-      // Diastolic BP: 77 - 83 mmHg
-      const diastolic = 80 + Math.round(Math.cos(dayIndex) * 3);
-      // Blood Sugar: 90 - 102 mg/dL
-      const bloodSugar = Math.round((96 + Math.sin(dayIndex * 0.8) * 6) * 10) / 10;
-      // Heart Rate: 68 - 76 bpm
-      const heartRate = 72 + Math.round(Math.cos(dayIndex * 0.5) * 4);
+      // Biometric Vitals: Realistic physiological variance with natural fluctuations
+      // Systolic BP: Natural variance around 118 - 124 mmHg
+      const systolicNoise = ((dayIndex * 13) % 5) - 2;
+      const systolic = 121 + Math.round(Math.sin(dayIndex * 0.25) * 3) + systolicNoise;
+
+      // Diastolic BP: Natural variance around 78 - 82 mmHg
+      const diastolicNoise = ((dayIndex * 7) % 3) - 1;
+      const diastolic = 80 + Math.round(Math.cos(dayIndex * 0.25) * 2) + diastolicNoise;
+
+      // Fasting Blood Sugar: 94 - 100 mg/dL with organic variations
+      const sugarNoise = (((dayIndex * 17) % 7) - 3) * 0.4;
+      const bloodSugar = Math.round((96 + Math.sin(dayIndex * 0.15) * 2 + sugarNoise) * 10) / 10;
+
+      // Resting Heart Rate: 70 - 75 bpm
+      const hrNoise = ((dayIndex * 11) % 3) - 1;
+      const heartRate = 72 + Math.round(Math.cos(dayIndex * 0.2) * 3) + hrNoise;
       const vitalsUpdatedAt = `${dateStr}T08:30:00.000Z`;
 
       await db.runAsync(

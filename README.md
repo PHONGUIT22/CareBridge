@@ -1,4 +1,4 @@
-# 🌉 CareBridge — Clinical Medication Adherence & Caregiver Bridge for Seniors
+# 💊 CareBridge — Clinical Medication Adherence & Caregiver Bridge for Seniors
 
 [![Expo SDK 54](https://img.shields.io/badge/Expo-SDK%2054-blue.svg)](https://expo.dev)
 [![React Native 0.81](https://img.shields.io/badge/React%20Native-0.81-61DAFB.svg)](https://reactnative.dev)

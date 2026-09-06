@@ -1,5 +1,7 @@
 import * as Print from 'expo-print';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import { Platform, Alert } from 'react-native';
 import { DailyLogItem } from '../database/logRepo';
 import { MedicineRecord } from '../database/medicineRepo';
 import { VitalsRepo } from '../database/vitalsRepo';
@@ -207,15 +209,43 @@ export const PdfService = {
       </html>
     `;
 
-    // 1. Generate temporary PDF file
-    const { uri } = await Print.printToFileAsync({ html: htmlContent });
+    // 1. Generate temporary PDF file with clean naming
+    const { uri: tempUri } = await Print.printToFileAsync({ html: htmlContent });
+    const cleanFileName = `CareBridge_Clinical_Report_${todayStr}.pdf`;
 
-    // 2. Open system Share / Print dialog
+    // 2. Direct save on Android via StorageAccessFramework
+    if (Platform.OS === 'android') {
+      try {
+        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        if (permissions.granted) {
+          const base64 = await FileSystem.readAsStringAsync(tempUri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          const createdUri = await FileSystem.StorageAccessFramework.createFileAsync(
+            permissions.directoryUri,
+            cleanFileName,
+            'application/pdf'
+          );
+          await FileSystem.writeAsStringAsync(createdUri, base64, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          Alert.alert('Success', `Saved report "${cleanFileName}" to device.`);
+          return;
+        }
+      } catch (e) {
+        console.warn('SAF file save error, falling back to Share sheet:', e);
+      }
+    }
+
+    // 3. Fallback: Copy to documentDirectory with clean filename then share
+    const newPath = `${FileSystem.documentDirectory}${cleanFileName}`;
+    await FileSystem.copyAsync({ from: tempUri, to: newPath });
+
     if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(uri, {
+      await Sharing.shareAsync(newPath, {
         UTI: '.pdf',
         mimeType: 'application/pdf',
-        dialogTitle: 'Share CareBridge Clinical PDF Report',
+        dialogTitle: 'Save CareBridge Medical Report',
       });
     }
   },

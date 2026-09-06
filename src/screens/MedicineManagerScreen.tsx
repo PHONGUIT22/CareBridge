@@ -33,6 +33,11 @@ import { useAlert } from '../context/AlertContext';
 import { PaywallModal } from '../components/PaywallModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { VitalsRepo, VitalsRecord } from '../database/vitalsRepo';
+import {
+  requestNotificationPermissions,
+  scheduleMedicationReminder,
+  cancelMedicationReminders,
+} from '../services/notificationService';
 
 const PRESET_MEDICINES = [
   { name: 'Amlodipine (Blood Pressure)', icon: 'heart-pulse', defaultDose: '5 mg' },
@@ -103,6 +108,11 @@ export const MedicineManagerScreen: React.FC = () => {
     CaregiverRepo.getCaregiver().then((c) => setCaregiver(c));
     const unsubscribe = CaregiverRepo.subscribe((updated) => setCaregiver(updated));
     return unsubscribe;
+  }, []);
+
+  // Request notification permissions on component mount
+  useEffect(() => {
+    requestNotificationPermissions();
   }, []);
 
   // Modal State
@@ -316,6 +326,7 @@ export const MedicineManagerScreen: React.FC = () => {
       formattedTime = `${formattedTime}:00`;
     }
     try {
+      let savedMedId = editingMedId;
       if (editingMedId) {
         await MedicineRepo.updateMedicine(editingMedId, {
           name: selectedMedName.trim(),
@@ -326,7 +337,7 @@ export const MedicineManagerScreen: React.FC = () => {
           type: selectedType,
         });
       } else {
-        await MedicineRepo.addMedicine({
+        savedMedId = await MedicineRepo.addMedicine({
           name: selectedMedName.trim(),
           dosage: selectedDose.trim(),
           reminderTimes: [formattedTime],
@@ -335,6 +346,17 @@ export const MedicineManagerScreen: React.FC = () => {
           type: selectedType,
         });
       }
+
+      // Schedule daily recurring push notification for the medication
+      if (savedMedId) {
+        await scheduleMedicationReminder(
+          savedMedId,
+          selectedMedName.trim(),
+          selectedDose.trim(),
+          formattedTime
+        );
+      }
+
       setIsModalVisible(false);
       await updateSubscriptionState();
       await refresh();
@@ -357,6 +379,7 @@ export const MedicineManagerScreen: React.FC = () => {
       confirmText: 'Delete',
       cancelText: 'Cancel',
       onConfirm: async () => {
+        await cancelMedicationReminders(editingMedId);
         await MedicineRepo.deleteMedicine(editingMedId);
         setIsModalVisible(false);
         await updateSubscriptionState();

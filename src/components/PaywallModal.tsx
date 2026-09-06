@@ -42,7 +42,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
   };
 
   const handleResetFree = async () => {
-    SubscriptionService.resetToFree();
+    await SubscriptionService.resetToFree();
     Alert.alert('Reset Free Tier', 'App reverted to Free plan (Max 2 prescriptions).');
     await onUnlocked();
     onClose();

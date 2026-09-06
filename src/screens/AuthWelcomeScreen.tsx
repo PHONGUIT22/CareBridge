@@ -15,7 +15,7 @@ import { THEME } from '../constants/theme';
 import { CaregiverRepo } from '../database/caregiverRepo';
 import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useAlert } from '../context/AlertContext';
-import { seedDemoData } from '../services/demoDataService';
+import { DemoDataService } from '../services/demoDataService';
 
 interface AuthWelcomeScreenProps {
   onAuthenticate?: () => void;
@@ -32,6 +32,14 @@ export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ onAuthenti
 
   // Handle email sign-in
   const handleEmailSignIn = async () => {
+    if (email.trim().toLowerCase() === 'demo@gmail.com' && password.trim() === '1234') {
+      setIsSubmitting(true);
+      await DemoDataService.seedDemoData();
+      setIsSubmitting(false);
+      handleComplete();
+      return;
+    }
+
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
       showAlert({
@@ -49,28 +57,13 @@ export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ onAuthenti
     }
 
     setIsSubmitting(true);
-    try {
-      const lowerEmail = trimmedEmail.toLowerCase();
-      const trimmedPass = password.trim();
+    // Persist caregiver credentials to SQLite so Today screen and PDF reflect the user
+    await CaregiverRepo.saveCaregiver(trimmedEmail);
 
-      // Check for Hackathon Demo Credentials
-      if (lowerEmail === 'demo@gmail.com' && trimmedPass === '1234') {
-        // Wipe dummy data & seed 30 days of pristine clinical records
-        await seedDemoData();
-      } else {
-        // Persist caregiver credentials to SQLite so Today screen and PDF reflect the user
-        await CaregiverRepo.saveCaregiver(trimmedEmail);
-      }
-
-      setTimeout(() => {
-        setIsSubmitting(false);
-        handleComplete();
-      }, 300);
-    } catch (error) {
-      console.error('Sign in / seeder error:', error);
+    setTimeout(() => {
       setIsSubmitting(false);
       handleComplete();
-    }
+    }, 300);
   };
 
   // Handle guest caregiver sign-in (allows instant offline access)
@@ -123,28 +116,6 @@ export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ onAuthenti
               Sign in to manage prescriptions, biometric vitals, and adherence reports.
             </Text>
 
-            {/* Hackathon Evaluator Quick Access */}
-            <TouchableOpacity
-              style={styles.demoCard}
-              onPress={() => {
-                setEmail('demo@gmail.com');
-                setPassword('1234');
-              }}
-              activeOpacity={0.8}
-            >
-              <View style={styles.demoCardHeader}>
-                <MaterialCommunityIcons name="lightning-bolt" size={15} color="#B45309" />
-                <Text style={styles.demoCardBadge}>HACKATHON EVALUATOR DEMO</Text>
-                <Feather name="corner-down-left" size={12} color="#B45309" style={{ marginLeft: 'auto' }} />
-              </View>
-              <Text style={styles.demoCardText}>
-                Tap to auto-fill: <Text style={styles.demoCardBold}>demo@gmail.com</Text> / PIN <Text style={styles.demoCardBold}>1234</Text>
-              </Text>
-              <Text style={styles.demoCardSubtext}>
-                Wipes mock data & seeds 30-day clinical vitals + adherence into SQLite
-              </Text>
-            </TouchableOpacity>
-
             {/* Email Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Caregiver Email</Text>
@@ -190,6 +161,25 @@ export const AuthWelcomeScreen: React.FC<AuthWelcomeScreenProps> = ({ onAuthenti
                 {isSubmitting ? 'Signing in...' : 'Sign In with Email'}
               </Text>
               <Feather name="arrow-right" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+
+            {/* Hackathon Judge Quick Access Hint */}
+            <TouchableOpacity
+              style={styles.judgeHintContainer}
+              onPress={() => {
+                setEmail('demo@gmail.com');
+                setPassword('1234');
+              }}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="shield-star" size={16} color="#D97706" style={styles.judgeHintIcon} />
+              <Text style={styles.judgeHintText}>
+                Hackathon Judge Quick Access: <Text style={styles.judgeHintBold}>demo@gmail.com</Text> / <Text style={styles.judgeHintBold}>1234</Text> (Preloads 30-Day Clinical Data)
+              </Text>
+              <View style={styles.judgeAutoFillBadge}>
+                <Text style={styles.judgeAutoFillText}>Fill</Text>
+                <Feather name="edit-2" size={10} color="#B45309" />
+              </View>
             </TouchableOpacity>
 
             {/* Divider */}
@@ -441,38 +431,43 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#94A3B8',
   },
-  demoCard: {
+  judgeHintContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FEF3C7',
     borderWidth: 1,
     borderColor: '#FDE68A',
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 16,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    gap: 8,
   },
-  demoCardHeader: {
+  judgeHintIcon: {
+    marginTop: 1,
+  },
+  judgeHintText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#78350F',
+    lineHeight: 16,
+  },
+  judgeHintBold: {
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  judgeAutoFillBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
     gap: 4,
+    backgroundColor: '#FDE68A',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
-  demoCardBadge: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#B45309',
-    letterSpacing: 0.6,
-  },
-  demoCardText: {
-    fontSize: 12,
-    color: '#92400E',
-    marginBottom: 2,
-  },
-  demoCardBold: {
+  judgeAutoFillText: {
+    fontSize: 11,
     fontWeight: '700',
-    color: '#78350F',
-  },
-  demoCardSubtext: {
-    fontSize: 10,
-    color: '#B45309',
-    fontStyle: 'italic',
+    color: '#92400E',
   },
 });

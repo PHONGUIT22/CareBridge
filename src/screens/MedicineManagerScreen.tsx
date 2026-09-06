@@ -61,7 +61,48 @@ const PRESET_ROUTINES = [
 
 const PRESET_DOSES = ['5 mg', '500 mg', '81 mg', '1000 mg', '600 mg', '1 Tablet', '1 Pill', '2 Drops'];
 const PRESET_ROUTINE_DOSES = ['1 Reading', '250 ml', '15 Mins', '30 Mins', '1 Strip', '1 Session'];
-const PRESET_TIMES = ['08:00', '12:00', '18:00', '21:00'];
+const PRESET_TIME_SLOTS = [
+  {
+    period: 'Morning',
+    emoji: '🌅',
+    sublabel: 'After breakfast',
+    times: ['07:00', '08:00'],
+  },
+  {
+    period: 'Midday',
+    emoji: '☀️',
+    sublabel: 'After lunch',
+    times: ['11:30', '12:00'],
+  },
+  {
+    period: 'Evening',
+    emoji: '🌆',
+    sublabel: 'After dinner',
+    times: ['18:00', '19:00'],
+  },
+  {
+    period: 'Bedtime',
+    emoji: '🌙',
+    sublabel: 'Before sleep',
+    times: ['21:00'],
+  },
+];
+
+const adjustTimeMinutes = (timeStr: string, deltaMinutes: number): string => {
+  const [hStr, mStr] = (timeStr || '08:00').split(':');
+  let hours = parseInt(hStr, 10);
+  let minutes = parseInt(mStr, 10);
+  if (isNaN(hours)) hours = 8;
+  if (isNaN(minutes)) minutes = 0;
+
+  let totalMinutes = hours * 60 + minutes + deltaMinutes;
+  totalMinutes = ((totalMinutes % 1440) + 1440) % 1440;
+
+  const newHours = Math.floor(totalMinutes / 60);
+  const newMinutes = totalMinutes % 60;
+  return `${String(newHours).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}`;
+};
+
 const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
 export const MedicineManagerScreen: React.FC = () => {
@@ -308,6 +349,20 @@ export const MedicineManagerScreen: React.FC = () => {
       newDays.push(day);
     }
     setSelectedDays(newDays);
+  };
+
+  const handleAdjustTime = (deltaMinutes: number) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {}
+    setSelectedTime((prev) => adjustTimeMinutes(prev, deltaMinutes));
+  };
+
+  const handleSelectTimePreset = (time: string) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {}
+    setSelectedTime(time);
   };
 
   const handleSaveMedicine = async () => {
@@ -772,33 +827,72 @@ export const MedicineManagerScreen: React.FC = () => {
               )}
 
               {/* 3. TIME TO TAKE */}
-              <Text style={styles.sectionLabel}>3. TIME TO TAKE (24H FORMAT)</Text>
-              <View style={styles.inputWrapper}>
-                <Feather name="clock" size={18} color={THEME.colors.primary} style={{ marginRight: 10 }} />
-                <TextInput
-                  style={styles.customTextInput}
-                  placeholder="e.g. 08:00, 14:30, 20:00"
-                  placeholderTextColor={THEME.light.textMuted}
-                  value={selectedTime}
-                  onChangeText={setSelectedTime}
-                />
+              <Text style={styles.sectionLabel}>3. TIME TO TAKE (DAILY SCHEDULE)</Text>
+
+              {/* ACTIVE TIME DISPLAY & 15-MIN STEPPER */}
+              <View style={styles.timeStepperCard}>
+                <TouchableOpacity
+                  style={styles.stepperBtn}
+                  onPress={() => handleAdjustTime(-15)}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Feather name="minus" size={16} color={THEME.colors.primary} />
+                  <Text style={styles.stepperBtnText}>- 15m</Text>
+                </TouchableOpacity>
+
+                <View style={styles.timeDisplayBadge}>
+                  <Feather name="clock" size={20} color={THEME.colors.primary} style={{ marginRight: 8 }} />
+                  <Text style={styles.timeDisplayText}>{selectedTime || '08:00'}</Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.stepperBtn}
+                  onPress={() => handleAdjustTime(15)}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Feather name="plus" size={16} color={THEME.colors.primary} />
+                  <Text style={styles.stepperBtnText}>+ 15m</Text>
+                </TouchableOpacity>
               </View>
 
-              <View style={styles.chipsRow}>
-                {PRESET_TIMES.map((time) => {
-                  const isSelected = selectedTime === time;
-                  return (
-                    <TouchableOpacity
-                      key={time}
-                      style={[styles.chip, isSelected && styles.chipSelected]}
-                      onPress={() => setSelectedTime(time)}
-                    >
-                      <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-                        {time}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+              {/* 4 PRESET TIME SLOTS BY ROUTINE */}
+              <View style={styles.timeSlotsContainer}>
+                {PRESET_TIME_SLOTS.map((slot) => (
+                  <View key={slot.period} style={styles.timeSlotCard}>
+                    <View style={styles.timeSlotHeader}>
+                      <Text style={styles.timeSlotEmoji}>{slot.emoji}</Text>
+                      <View style={styles.timeSlotTitleCol}>
+                        <Text style={styles.timeSlotPeriod}>{slot.period}</Text>
+                        <Text style={styles.timeSlotSublabel}>{slot.sublabel}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.timeSlotPills}>
+                      {slot.times.map((time) => {
+                        const isSelected = selectedTime === time;
+                        return (
+                          <TouchableOpacity
+                            key={time}
+                            style={[styles.timeSlotPill, isSelected && styles.timeSlotPillSelected]}
+                            onPress={() => handleSelectTimePreset(time)}
+                            activeOpacity={0.75}
+                          >
+                            <Text
+                              style={[
+                                styles.timeSlotPillText,
+                                isSelected && styles.timeSlotPillTextSelected,
+                              ]}
+                            >
+                              {time}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ))}
               </View>
 
               {/* 4. FREQUENCY */}
@@ -1323,6 +1417,110 @@ const styles = StyleSheet.create({
   },
   medChipTextSelected: {
     color: THEME.colors.textWhite,
+  },
+  timeStepperCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 16,
+    padding: 10,
+    marginBottom: 12,
+  },
+  timeDisplayBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  timeDisplayText: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: THEME.colors.primary,
+    letterSpacing: 1.5,
+  },
+  stepperBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+  },
+  stepperBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: THEME.colors.primary,
+  },
+  timeSlotsContainer: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  timeSlotCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: THEME.light.background,
+    borderWidth: 1,
+    borderColor: THEME.light.border,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  timeSlotHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+    marginRight: 8,
+  },
+  timeSlotEmoji: {
+    fontSize: 22,
+  },
+  timeSlotTitleCol: {
+    flex: 1,
+  },
+  timeSlotPeriod: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: THEME.light.textPrimary,
+  },
+  timeSlotSublabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: THEME.light.textMuted,
+    marginTop: 1,
+  },
+  timeSlotPills: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  timeSlotPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: THEME.light.surface,
+    borderWidth: 1.5,
+    borderColor: THEME.light.border,
+  },
+  timeSlotPillSelected: {
+    backgroundColor: THEME.colors.primary,
+    borderColor: THEME.colors.primary,
+  },
+  timeSlotPillText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: THEME.light.textSecondary,
+  },
+  timeSlotPillTextSelected: {
+    color: THEME.colors.textWhite,
+    fontWeight: '900',
   },
   chipsRow: {
     flexDirection: 'row',

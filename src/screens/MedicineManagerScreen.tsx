@@ -21,10 +21,12 @@ import { THEME } from '../constants/theme';
 import { CalendarStrip } from '../components/CalendarStrip';
 import { FullMonthCalendarModal } from '../components/FullMonthCalendarModal';
 import { MedicineCard } from '../components/MedicineCard';
+import { DoseNoteModal } from '../components/DoseNoteModal';
 import { SeniorClock } from '../components/SeniorClock';
 import { QuickVitalsBar } from '../components/QuickVitalsBar';
 import { useMedicines } from '../hooks/useMedicines';
 import { MedicineRepo } from '../database/medicineRepo';
+import { LogRepo, DailyLogItem } from '../database/logRepo';
 import { CaregiverRepo, CaregiverProfile } from '../database/caregiverRepo';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SubscriptionService } from '../services/revenuecat';
@@ -84,6 +86,7 @@ export const MedicineManagerScreen: React.FC = () => {
   const [medsCount, setMedsCount] = useState(0);
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const [isMonthModalOpen, setIsMonthModalOpen] = useState(false);
+  const [activeLogForNote, setActiveLogForNote] = useState<DailyLogItem | null>(null);
 
   // Caregiver Profile State (synced from local SQLite)
   const [caregiver, setCaregiver] = useState<CaregiverProfile>(() => CaregiverRepo.getCaregiverSync());
@@ -529,6 +532,8 @@ export const MedicineManagerScreen: React.FC = () => {
                       isTaken={item.isTaken}
                       isFuture={isFutureDate}
                       takenAt={item.takenAt}
+                      notes={item.notes}
+                      onOpenNoteModal={() => setActiveLogForNote(item)}
                       onToggleTake={() => {
                         if (isFutureDate) {
                           showAlert({
@@ -911,6 +916,23 @@ export const MedicineManagerScreen: React.FC = () => {
           await updateSubscriptionState(); // Automatically reload PRO badge state
         }}
       />
+
+      {/* Dose Clinical Diary & Note Modal */}
+      {activeLogForNote && (
+        <DoseNoteModal
+          visible={Boolean(activeLogForNote)}
+          medName={activeLogForNote.name}
+          scheduledTime={activeLogForNote.scheduledTime}
+          currentNotes={activeLogForNote.notes}
+          onClose={() => setActiveLogForNote(null)}
+          onSave={async (notes: string) => {
+            if (activeLogForNote) {
+              await LogRepo.updateLogNotes(activeLogForNote.logId, notes);
+              await refresh();
+            }
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 };

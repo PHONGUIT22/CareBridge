@@ -92,6 +92,9 @@ export const PdfService = {
               ${l.isTaken ? 'TAKEN (' + (l.takenAt || 'On Time') + ')' : 'MISSED'}
             </span>
           </td>
+          <td style="padding: 8px 10px; border-bottom: 1px solid #F1F5F9; font-size: 12px; color: ${l.notes ? '#334155' : '#94A3B8'}; font-style: ${l.notes ? 'normal' : 'italic'};">
+            ${l.notes || 'Normal (No notes)'}
+          </td>
         </tr>
       `
       )
@@ -196,6 +199,7 @@ export const PdfService = {
                 <th>Medication</th>
                 <th>Scheduled</th>
                 <th>Status</th>
+                <th>Notes / Observations</th>
               </tr>
             </thead>
             <tbody>

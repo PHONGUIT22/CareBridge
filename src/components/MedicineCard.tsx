@@ -11,12 +11,14 @@ interface MedicineCardProps {
   isTaken: boolean;
   isFuture?: boolean; // Lock action if date is in the future
   takenAt?: string;
+  notes?: string;
   imageUri?: string;
   stockCount?: number;
   type?: 'medication' | 'routine';
   onRefill?: () => void;
   onToggleTake: () => void;
   onPressCard?: () => void;
+  onOpenNoteModal?: () => void;
 }
 
 export const MedicineCard: React.FC<MedicineCardProps> = ({
@@ -26,12 +28,14 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
   isTaken,
   isFuture = false,
   takenAt,
+  notes,
   imageUri,
   stockCount,
   type = 'medication',
   onRefill,
   onToggleTake,
   onPressCard,
+  onOpenNoteModal,
 }) => {
   const { showAlert } = useAlert();
 
@@ -160,17 +164,52 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
             {type === 'routine' ? dosage : `${dosage} • Take ${intakeCount} pill${intakeCount > 1 ? 's' : ''}`}
           </Text>
 
-          {/* Status Timing Label */}
+          {/* Status Timing Label & Clinical Note Pill */}
           {isTaken ? (
-            <Text style={styles.takenLabel}>
-              {type === 'routine' ? `Completed at ${takenAt || 'scheduled time'}` : `Taken at ${takenAt || 'scheduled time'}`}
-            </Text>
+            <TouchableOpacity
+              onPress={onOpenNoteModal}
+              onLongPress={onOpenNoteModal}
+              activeOpacity={0.7}
+              style={styles.statusNoteContainer}
+            >
+              <Text style={styles.takenLabel}>
+                {type === 'routine' ? `Completed at ${takenAt || 'scheduled time'}` : `Taken at ${takenAt || 'scheduled time'}`}
+              </Text>
+              {notes && notes.trim().length > 0 ? (
+                <View style={styles.notePill}>
+                  <Feather name="file-text" size={11} color="#64748B" style={{ marginRight: 4 }} />
+                  <Text style={styles.notePillText} numberOfLines={1}>
+                    {notes}
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.addNotePrompt}>
+                  <Feather name="edit-3" size={10} color="#0284C7" style={{ marginRight: 3 }} />
+                  <Text style={styles.addNotePromptText}>Add note</Text>
+                </View>
+              )}
+            </TouchableOpacity>
           ) : isFuture ? (
             <Text style={styles.futureLabel}>Scheduled (Upcoming)</Text>
           ) : (
-            <Text style={styles.notTakenLabel}>
-              {type === 'routine' ? 'Not completed' : 'Not taken'}
-            </Text>
+            <TouchableOpacity
+              onPress={onOpenNoteModal}
+              onLongPress={onOpenNoteModal}
+              activeOpacity={0.7}
+              style={styles.statusNoteContainer}
+            >
+              <Text style={styles.notTakenLabel}>
+                {type === 'routine' ? 'Not completed' : 'Not taken'}
+              </Text>
+              {notes && notes.trim().length > 0 && (
+                <View style={styles.notePill}>
+                  <Feather name="file-text" size={11} color="#64748B" style={{ marginRight: 4 }} />
+                  <Text style={styles.notePillText} numberOfLines={1}>
+                    {notes}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
           )}
         </View>
       </TouchableOpacity>
@@ -187,12 +226,22 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
             <Text style={styles.pillTextLocked}>Locked</Text>
           </TouchableOpacity>
         ) : isTaken ? (
-          <TouchableOpacity style={styles.pillBtnTaken} onPress={onToggleTake} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.pillBtnTaken}
+            onPress={onToggleTake}
+            onLongPress={onOpenNoteModal}
+            activeOpacity={0.7}
+          >
             <Ionicons name="checkmark-circle" size={15} color="#15803D" style={{ marginRight: 4 }} />
             <Text style={styles.pillTextTaken}>{type === 'routine' ? 'Done' : 'Taken'}</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity style={styles.pillBtnTake} onPress={onToggleTake} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={styles.pillBtnTake}
+            onPress={onToggleTake}
+            onLongPress={onOpenNoteModal}
+            activeOpacity={0.85}
+          >
             <Text style={styles.pillTextTake}>{type === 'routine' ? 'Done' : 'Take'}</Text>
           </TouchableOpacity>
         )}
@@ -268,6 +317,37 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: THEME.colors.royalBlue,
     marginTop: 3,
+  },
+  statusNoteContainer: {
+    alignSelf: 'flex-start',
+    marginTop: 2,
+    maxWidth: '100%',
+  },
+  notePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginTop: 4,
+    maxWidth: 200,
+  },
+  notePillText: {
+    fontSize: 11,
+    color: '#64748B',
+    flex: 1,
+    fontWeight: '500',
+  },
+  addNotePrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 3,
+  },
+  addNotePromptText: {
+    fontSize: 10,
+    color: '#0284C7',
+    fontWeight: '600',
   },
   rightCol: {
     marginLeft: 10,

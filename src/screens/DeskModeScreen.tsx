@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
   },
   bottomActionSection: {
     paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingBottom: 100,
   },
   doseDueCard: {
     backgroundColor: '#111827',

@@ -168,22 +168,17 @@ export const MedicineManagerScreen: React.FC = () => {
   useFocusEffect(
     useCallback(() => {
       async function syncData() {
-        // Automatically sync back to today if waking up on a new day
-        const realTodayStr = formatToISODate(new Date());
-        if (formatToISODate(selectedDate) !== realTodayStr && selectedDateStr < realTodayStr) {
-          setSelectedDate(new Date());
-        }
-
         const proStatus = await SubscriptionService.isPro();
         const allMeds = await MedicineRepo.getAllMedicines();
         const caregiverProfile = await CaregiverRepo.getCaregiver();
         setIsPro(proStatus);
         setMedsCount(allMeds.length);
         setCaregiver(caregiverProfile);
-        await refresh(); // <-- Automatically refresh medication list on tab focus
+        await loadVitals(selectedDateStr);
+        await refresh(); // Automatically refresh medication list on tab focus
       }
       syncData();
-    }, [refresh, selectedDate, selectedDateStr])
+    }, [refresh, selectedDateStr, loadVitals])
   );
 
   const formattedDayTitle = selectedDate.toLocaleDateString('en-US', {

@@ -30,7 +30,7 @@ const DAY_MAP: Record<number, string> = {
 
 export const LogRepo = {
   /**
-   * Scan medications and generate logs ONLY if date >= medicine creation date
+   * Scan medications and generate logs for scheduled date
    */
   async generateLogsForDate(dateStr: string): Promise<void> {
     const db = await getDatabase();
@@ -41,22 +41,12 @@ export const LogRepo = {
     if (allMeds.length === 0) return;
 
     await db.withTransactionAsync(async () => {
-      // 1. Automatically clean up records prior to medicine creation date
-      await db.runAsync(`
-        DELETE FROM intake_logs 
-        WHERE date < (
-          SELECT substr(created_at, 1, 10) 
-          FROM medicines 
-          WHERE medicines.id = intake_logs.medicine_id
-        )
-      `);
-
-      // 2. Only generate logs for medications existing on that date
+      // Generate logs for medications scheduled on this date
       for (const med of allMeds) {
         const medStartDate = med.createdAt.split('T')[0]; // "YYYY-MM-DD"
 
-        // Business rule: If target date is before medicine creation date -> SKIP
-        if (dateStr < medStartDate) {
+        // Allow medications with 'ALL' schedule to show on past days for historical review/testing
+        if (!med.daysOfWeek.includes('ALL') && dateStr < medStartDate) {
           continue;
         }
 
@@ -104,7 +94,7 @@ export const LogRepo = {
         l.taken_at as takenAt
       FROM intake_logs l
       INNER JOIN medicines m ON l.medicine_id = m.id
-      WHERE l.date = ? AND l.date >= substr(m.created_at, 1, 10)
+      WHERE l.date = ?
       ORDER BY l.time ASC, m.name ASC
     `;
 

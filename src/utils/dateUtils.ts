@@ -21,6 +21,17 @@ export function formatToISODate(d: Date): string {
 }
 
 /**
+ * Safely parse a "YYYY-MM-DD" string into a local Date instance.
+ * Setting the time to 12:00:00 (noon) avoids UTC midnight timezone shifts
+ * and off-by-one errors in western timezones (e.g. US GMT-5 to GMT-8), as well
+ * as daylight saving time edge cases.
+ */
+export function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0); // Noon avoids DST & midnight edge cases
+}
+
+/**
  * Get comprehensive date metadata for the given or current date
  */
 export function getDateInfo(baseDate: Date = new Date()): DateInfo {
@@ -77,8 +88,7 @@ export function isDatePastOrToday(dateStr: string): boolean {
  * Get weekday short name (e.g. "Mon", "Tue", "Wed")
  */
 export function getWeekdayName(dateStr: string): string {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const dt = new Date(y, m - 1, d);
+  const dt = parseLocalDate(dateStr);
   return dt.toLocaleDateString('en-US', { weekday: 'short' });
 }
 
@@ -86,10 +96,10 @@ export function getWeekdayName(dateStr: string): string {
  * Get 7 date strings (Monday to Sunday) for the active week
  */
 export function getWeekDates(referenceDateStr?: string): string[] {
-  const base = referenceDateStr ? new Date(referenceDateStr) : new Date();
+  const base = referenceDateStr ? parseLocalDate(referenceDateStr) : new Date();
   const info = getDateInfo(base);
   const dates: string[] = [];
-  const start = new Date(info.weekStart);
+  const start = parseLocalDate(info.weekStart);
 
   for (let i = 0; i < 7; i++) {
     const current = new Date(start);

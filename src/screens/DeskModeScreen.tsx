@@ -19,11 +19,30 @@ import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
 import { announceMedication } from '../services/speechService';
 
+/**
+ * Checks if a scheduled dose ("HH:mm") is within a 30-minute window of current time.
+ */
+const isDueWithinWindow = (scheduledTimeStr?: string, windowMinutes: number = 30): boolean => {
+  if (!scheduledTimeStr) return false;
+  const [hStr, mStr] = scheduledTimeStr.split(':');
+  const schedHour = parseInt(hStr, 10);
+  const schedMin = parseInt(mStr, 10);
+  if (isNaN(schedHour) || isNaN(schedMin)) return false;
+
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const schedMinutes = schedHour * 60 + schedMin;
+  const diffMinutes = Math.abs(currentMinutes - schedMinutes);
+
+  return diffMinutes <= windowMinutes;
+};
+
 export const DeskModeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const [logs, setLogs] = useState<DailyLogItem[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastAnnouncedLogIdRef = useRef<string | null>(null);
 
   // Clean up any pending toast timer on unmount
   useEffect(() => {
@@ -60,18 +79,20 @@ export const DeskModeScreen: React.FC = () => {
   const takenToday = logs.filter((l) => l.isTaken).length;
   const nextPendingPill = logs.find((l) => !l.isTaken);
 
-  // Automatically announce upcoming medication when in desk stand mode
+  // Automatically announce upcoming medication ONLY if it is due right now (within 30-minute window)
   useEffect(() => {
-    if (nextPendingPill) {
-      const message = `Time for medication: ${nextPendingPill.name}, ${nextPendingPill.dosage}.`;
-      Speech.speak(message, { language: 'en-US', rate: 0.85 });
+    if (nextPendingPill && isDueWithinWindow(nextPendingPill.scheduledTime, 30)) {
+      if (lastAnnouncedLogIdRef.current !== nextPendingPill.logId) {
+        lastAnnouncedLogIdRef.current = nextPendingPill.logId;
+        announceMedication(nextPendingPill.name, nextPendingPill.dosage);
+      }
     }
 
     // Stop speech playback when leaving screen or when medication changes
     return () => {
       Speech.stop();
     };
-  }, [nextPendingPill?.name, nextPendingPill?.dosage]);
+  }, [nextPendingPill?.logId, nextPendingPill?.name, nextPendingPill?.dosage, nextPendingPill?.scheduledTime]);
 
   const handleDismissToast = () => {
     if (toastTimeoutRef.current) {
@@ -86,6 +107,7 @@ export const DeskModeScreen: React.FC = () => {
 
     // Silence any active speech announcement immediately
     Speech.stop();
+    lastAnnouncedLogIdRef.current = nextPendingPill.logId;
 
     // Physical haptic feedback
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

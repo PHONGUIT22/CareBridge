@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { THEME } from '../constants/theme';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { formatToISODate } from '../utils/dateUtils';
+import { formatToISODate, parseLocalDate } from '../utils/dateUtils';
 import { DailyLogItem } from '../database/logRepo';
 
 interface MedicationPunchCardProps {
@@ -42,7 +42,7 @@ export const MedicationPunchCard: React.FC<MedicationPunchCardProps> = ({
     const today = new Date();
     const todayStr = formatToISODate(today);
     const startDateStr = createdAt ? createdAt.split('T')[0] : todayStr;
-    const startDate = new Date(startDateStr);
+    const startDate = parseLocalDate(startDateStr);
 
     // 1. Find Monday of current week
     const currentDay = today.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat

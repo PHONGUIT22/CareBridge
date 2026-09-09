@@ -1,5 +1,6 @@
 import { getDatabase } from './db';
 import { MedicineRepo } from './medicineRepo';
+import { parseLocalDate } from '../utils/dateUtils';
 
 export type LogStatus = 'pending' | 'taken' | 'skipped';
 
@@ -35,7 +36,7 @@ export const LogRepo = {
    */
   async generateLogsForDate(dateStr: string): Promise<void> {
     const db = await getDatabase();
-    const targetDate = new Date(dateStr);
+    const targetDate = parseLocalDate(dateStr);
     const dayCode = DAY_MAP[targetDate.getDay()];
 
     const allMeds = await MedicineRepo.getAllMedicines();

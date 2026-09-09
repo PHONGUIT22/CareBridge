@@ -196,6 +196,10 @@ export const MedicineManagerScreen: React.FC = () => {
   };
 
   const handleSelectType = (type: 'medication' | 'routine') => {
+    if (type === 'medication' && !editingMedId && !isPro && medsCount >= 2) {
+      setIsPaywallOpen(true);
+      return;
+    }
     setSelectedType(type);
     if (!editingMedId) {
       if (type === 'medication') {
@@ -211,8 +215,9 @@ export const MedicineManagerScreen: React.FC = () => {
   const updateSubscriptionState = useCallback(async () => {
     const proStatus = await SubscriptionService.isPro();
     const allMeds = await MedicineRepo.getAllMedicines();
+    const prescriptionCount = allMeds.filter((m) => m.type !== 'routine').length;
     setIsPro(proStatus);
-    setMedsCount(allMeds.length);
+    setMedsCount(prescriptionCount);
   }, []);
 
   // Automatically sync Pro status and refresh medication list on tab focus
@@ -221,9 +226,10 @@ export const MedicineManagerScreen: React.FC = () => {
       async function syncData() {
         const proStatus = await SubscriptionService.isPro();
         const allMeds = await MedicineRepo.getAllMedicines();
+        const prescriptionCount = allMeds.filter((m) => m.type !== 'routine').length;
         const caregiverProfile = await CaregiverRepo.getCaregiver();
         setIsPro(proStatus);
-        setMedsCount(allMeds.length);
+        setMedsCount(prescriptionCount);
         setCaregiver(caregiverProfile);
         await loadVitals(selectedDateStr);
         await refresh(); // Automatically refresh medication list on tab focus
@@ -253,16 +259,17 @@ export const MedicineManagerScreen: React.FC = () => {
   };
 
   const showAddFormAfterAd = () => {
-    // Limit to 2 prescriptions for Free tier
-    if (!isPro && medsCount >= 2) {
-      setIsPaywallOpen(true);
-      return;
-    }
-
     setEditingMedId(null);
-    setSelectedType('medication');
-    setSelectedMedName(PRESET_MEDICINES[0].name);
-    setSelectedDose(PRESET_MEDICINES[0].defaultDose);
+    // If free prescription limit is reached, default to routine mode so users can still add care routines
+    const defaultType = !isPro && medsCount >= 2 ? 'routine' : 'medication';
+    setSelectedType(defaultType);
+    if (defaultType === 'routine') {
+      setSelectedMedName(PRESET_ROUTINES[0].name);
+      setSelectedDose(PRESET_ROUTINES[0].defaultDose);
+    } else {
+      setSelectedMedName(PRESET_MEDICINES[0].name);
+      setSelectedDose(PRESET_MEDICINES[0].defaultDose);
+    }
     setSelectedTime('08:00');
     setSelectedDays(['ALL']);
     setSelectedImage(null);
@@ -355,6 +362,12 @@ export const MedicineManagerScreen: React.FC = () => {
   };
 
   const handleSaveMedicine = async () => {
+    // Prevent adding more than 2 prescriptions on Free tier (care routines are unlimited)
+    if (selectedType === 'medication' && !editingMedId && !isPro && medsCount >= 2) {
+      setIsPaywallOpen(true);
+      return;
+    }
+
     if (!selectedMedName.trim()) {
       showAlert({
         title: 'Missing Name',

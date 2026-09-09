@@ -89,16 +89,32 @@ export const RevenueCatService = {
   },
 
   /**
-   * 4. Check real Pro status from SDK local cache
+   * 4. Check real Pro status from SDK local cache or manual demo override
    */
   async isPro(): Promise<boolean> {
     try {
       const customerInfo = await Purchases.getCustomerInfo();
-      isProCached = Boolean(customerInfo?.entitlements?.active[ENTITLEMENT_ID]);
+      const sdkPro = Boolean(customerInfo?.entitlements?.active[ENTITLEMENT_ID]);
+      isProCached = isProCached || sdkPro;
       return isProCached;
     } catch (e) {
       return isProCached;
     }
+  },
+
+  /**
+   * Set local Pro entitlement directly (ideal for Expo Go / Simulator demo testing without Store accounts)
+   */
+  setLocalPro(enabled: boolean): void {
+    isProCached = enabled;
+    console.log('[RevenueCat] Local entitlement override. Pro active:', isProCached);
+    entitlementListeners.forEach((listener) => {
+      try {
+        listener(isProCached);
+      } catch (err) {
+        console.warn('[RevenueCat Listener Callback Error]:', err);
+      }
+    });
   },
 
   /**
@@ -167,6 +183,7 @@ export const RevenueCatService = {
    * 7. Reset to Free tier by logging in with fresh guest ID
    */
   async resetToFree(): Promise<void> {
+    isProCached = false;
     try {
       const resetId = `demo_guest_${Date.now()}`;
       const { customerInfo } = await Purchases.logIn(resetId);
@@ -175,6 +192,13 @@ export const RevenueCatService = {
     } catch (e) {
       console.log('[RevenueCat Reset Error]:', e);
     }
+    entitlementListeners.forEach((listener) => {
+      try {
+        listener(isProCached);
+      } catch (err) {
+        console.warn('[RevenueCat Listener Callback Error]:', err);
+      }
+    });
   },
 };
 

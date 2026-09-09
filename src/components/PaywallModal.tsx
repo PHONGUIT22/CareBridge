@@ -63,16 +63,44 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
         });
         await onUnlocked();
         onClose();
+      } else {
+        // Fallback for emulator / Expo Go / sandbox without native store billing
+        showAlert({
+          title: 'Store Billing Unavailable',
+          message: 'Native in-app billing is unavailable on this environment. Would you like to use the Instant Demo Unlock to evaluate all Pro features?',
+          type: 'info',
+          confirmText: 'Unlock Pro (Demo)',
+          cancelText: 'Cancel',
+          onConfirm: async () => {
+            await handleDemoUnlock();
+          },
+        });
       }
     } catch (error) {
       showAlert({
-        title: 'Notice',
-        message: 'Purchase failed.',
-        type: 'warning',
+        title: 'Store Purchase Notice',
+        message: 'Could not connect to store billing. You can use the Instant Demo Unlock to evaluate all features.',
+        type: 'info',
+        confirmText: 'Unlock Pro (Demo)',
+        cancelText: 'Cancel',
+        onConfirm: async () => {
+          await handleDemoUnlock();
+        },
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDemoUnlock = async () => {
+    SubscriptionService.setLocalPro(true);
+    showAlert({
+      title: '⚡ Pro Unlocked (Demo)',
+      message: 'Pro entitlements active! Unlimited prescriptions & Doctor PDF Export are now unlocked.',
+      type: 'success',
+    });
+    await onUnlocked();
+    onClose();
   };
 
   const handleResetFree = async () => {
@@ -183,6 +211,16 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
             ) : (
               <Text style={styles.purchaseBtnText}>START FREE TRIAL & UNLOCK PRO</Text>
             )}
+          </TouchableOpacity>
+
+          {/* DEMO BYPASS FOR EVALUATORS & EXPO GO TESTING */}
+          <TouchableOpacity
+            style={styles.demoUnlockBtn}
+            onPress={handleDemoUnlock}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="flash" size={15} color="#0284C7" />
+            <Text style={styles.demoUnlockBtnText}>[Demo] Instant Unlock Pro (Bypass Store)</Text>
           </TouchableOpacity>
 
           {/* RESET TO FREE TIER BUTTON FOR TESTING */}
@@ -343,6 +381,24 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '900',
     letterSpacing: 0.5,
+  },
+  demoUnlockBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1.5,
+    borderColor: '#BAE6FD',
+    height: 48,
+    borderRadius: 14,
+    marginTop: 12,
+  },
+  demoUnlockBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0284C7',
+    letterSpacing: 0.3,
   },
   resetBtn: {
     alignItems: 'center',

@@ -8,6 +8,7 @@ import {
   Platform,
   StatusBar,
   Image,
+  Animated,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { THEME } from '../constants/theme';
@@ -18,6 +19,7 @@ import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
 import { announceMedication } from '../services/speechService';
+import { AnimatedScreenWrapper } from '../components/AnimatedScreenWrapper';
 
 /**
  * Checks if a scheduled dose ("HH:mm") is within a 30-minute window of current time.
@@ -43,6 +45,11 @@ export const DeskModeScreen: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastAnnouncedLogIdRef = useRef<string | null>(null);
+
+  // Toast animated values (initial: opacity 0, translateY -25)
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastTranslateY = useRef(new Animated.Value(-25)).current;
+  const isDismissingToastRef = useRef(false);
 
   // Clean up any pending toast timer on unmount
   useEffect(() => {
@@ -94,12 +101,62 @@ export const DeskModeScreen: React.FC = () => {
     };
   }, [nextPendingPill?.logId, nextPendingPill?.name, nextPendingPill?.dosage, nextPendingPill?.scheduledTime]);
 
-  const handleDismissToast = () => {
+  const handleDismissToast = useCallback(() => {
     if (toastTimeoutRef.current) {
       clearTimeout(toastTimeoutRef.current);
       toastTimeoutRef.current = null;
     }
-    setToastMessage(null);
+    if (isDismissingToastRef.current) return;
+    isDismissingToastRef.current = true;
+
+    // Smooth exit: opacity -> 0, translateY -> -20 (duration: 180ms)
+    Animated.parallel([
+      Animated.timing(toastOpacity, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.timing(toastTranslateY, {
+        toValue: -20,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setToastMessage(null);
+      isDismissingToastRef.current = false;
+    });
+  }, [toastOpacity, toastTranslateY]);
+
+  const triggerToast = (message: string) => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+      toastTimeoutRef.current = null;
+    }
+    isDismissingToastRef.current = false;
+    setToastMessage(message);
+
+    // Initial state
+    toastOpacity.setValue(0);
+    toastTranslateY.setValue(-25);
+
+    // Smooth entrance: opacity timing 220ms, translateY spring (friction: 6, tension: 80)
+    Animated.parallel([
+      Animated.timing(toastOpacity, {
+        toValue: 1,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+      Animated.spring(toastTranslateY, {
+        toValue: 0,
+        friction: 6,
+        tension: 80,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    toastTimeoutRef.current = setTimeout(() => {
+      handleDismissToast();
+    }, 2200);
   };
 
   const handleTakePill = async () => {
@@ -115,21 +172,24 @@ export const DeskModeScreen: React.FC = () => {
     await LogRepo.toggleLogStatus(nextPendingPill.logId, nextPendingPill.status);
     await loadTodayLogs();
 
-    // Trigger non-blocking toast notification with managed timeout
-    if (toastTimeoutRef.current) {
-      clearTimeout(toastTimeoutRef.current);
-    }
-    setToastMessage(`Marked ${nextPendingPill.name} as taken!`);
-    toastTimeoutRef.current = setTimeout(() => {
-      setToastMessage(null);
-    }, 2200);
+    // Trigger non-blocking animated toast notification
+    triggerToast(`Marked ${nextPendingPill.name} as taken!`);
   };
 
   return (
     <SafeAreaView style={styles.container}>
       {/* LUXURY FLOATING TOAST NOTIFICATION */}
       {toastMessage && (
-        <View style={styles.toastContainer} pointerEvents="box-none">
+        <Animated.View
+          style={[
+            styles.toastContainer,
+            {
+              opacity: toastOpacity,
+              transform: [{ translateY: toastTranslateY }],
+            },
+          ]}
+          pointerEvents="box-none"
+        >
           <TouchableOpacity
             style={styles.toastCard}
             activeOpacity={0.9}
@@ -144,11 +204,12 @@ export const DeskModeScreen: React.FC = () => {
             </View>
             <Ionicons name="close" size={18} color="#64748B" style={styles.toastCloseIcon} />
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       )}
 
       {/* 1. TOP AMBIENT STATUS BAR */}
-      <View style={styles.topBar}>
+      <AnimatedScreenWrapper style={styles.contentWrapper}>
+        <View style={styles.topBar}>
         <View style={styles.ambientBadge}>
           <View style={styles.pulseDot} />
           <Text style={styles.ambientText}>SENIOR NIGHTSTAND MODE</Text>
@@ -242,6 +303,7 @@ export const DeskModeScreen: React.FC = () => {
           </View>
         )}
       </View>
+      </AnimatedScreenWrapper>
     </SafeAreaView>
   );
 };
@@ -251,6 +313,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#070B14', // Deep dark background for eye comfort at night
     paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 28) + 4 : 12,
+  },
+  contentWrapper: {
+    flex: 1,
     justifyContent: 'space-between',
   },
   topBar: {

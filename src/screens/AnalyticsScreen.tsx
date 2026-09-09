@@ -17,6 +17,7 @@ import { THEME } from '../constants/theme';
 import { VitalsRepo, VitalsRecord } from '../database/vitalsRepo';
 import { SubscriptionService } from '../services/revenuecat';
 import { PaywallModal } from '../components/PaywallModal';
+import { AnimatedScreenWrapper } from '../components/AnimatedScreenWrapper';
 
 type MetricType = 'bp' | 'sugar' | 'hr';
 
@@ -99,7 +100,8 @@ export const AnalyticsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
+      <AnimatedScreenWrapper style={{ flex: 1 }}>
+        <View style={styles.header}>
         <View>
           <Text style={styles.headerSub}>BIOMETRIC TRENDS</Text>
           <Text style={styles.headerTitle}>Vitals Analytics</Text>
@@ -238,6 +240,7 @@ export const AnalyticsScreen: React.FC = () => {
           </View>
         </View>
       </ScrollView>
+      </AnimatedScreenWrapper>
 
       <PaywallModal
         visible={showPaywall}

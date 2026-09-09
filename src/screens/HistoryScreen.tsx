@@ -20,6 +20,7 @@ import { PdfService } from '../services/pdfService';
 import { formatToISODate } from '../utils/dateUtils';
 import { useAlert } from '../context/AlertContext';
 import { SubscriptionService } from '../services/revenuecat';
+import { AnimatedScreenWrapper } from '../components/AnimatedScreenWrapper';
 
 const CARD_PALETTES = [
   '#1E3A8A', // Medical Navy
@@ -127,58 +128,60 @@ export const HistoryScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* 1. TOP HEADER */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerSub}>CAREBRIDGE COMPLIANCE MATRIX</Text>
-          <Text style={styles.headerTitle}>Medication History</Text>
+      <AnimatedScreenWrapper style={{ flex: 1 }}>
+        {/* 1. TOP HEADER */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerSub}>CAREBRIDGE COMPLIANCE MATRIX</Text>
+            <Text style={styles.headerTitle}>Medication History</Text>
+          </View>
+
+          <TouchableOpacity style={styles.exportBtn} onPress={handleExportPDF} activeOpacity={0.8}>
+            <Feather name="download" size={18} color={THEME.colors.textWhite} />
+            <Text style={styles.exportBtnText}>Export</Text>
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.exportBtn} onPress={handleExportPDF} activeOpacity={0.8}>
-          <Feather name="download" size={18} color={THEME.colors.textWhite} />
-          <Text style={styles.exportBtnText}>Export</Text>
-        </TouchableOpacity>
-      </View>
+        {/* 2. SCROLLABLE PUNCH-CARD LIST */}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {loading && medicines.length === 0 ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color={THEME.colors.primary} />
+              <Text style={styles.loadingText}>Loading punch-card matrix...</Text>
+            </View>
+          ) : medicines.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="grid-outline" size={60} color={THEME.light.border} />
+              <Text style={styles.emptyTitle}>No Prescription Punch-Cards</Text>
+              <Text style={styles.emptySubtitle}>
+                Add medications on the "Today" tab to start tracking your punch-card streaks!
+              </Text>
+            </View>
+          ) : (
+            medicines.map((med, index) => {
+              const color = CARD_PALETTES[index % CARD_PALETTES.length];
+              const primaryTime = med.reminderTimes[0] || '08:00';
 
-      {/* 2. SCROLLABLE PUNCH-CARD LIST */}
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {loading && medicines.length === 0 ? (
-          <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color={THEME.colors.primary} />
-            <Text style={styles.loadingText}>Loading punch-card matrix...</Text>
-          </View>
-        ) : medicines.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="grid-outline" size={60} color={THEME.light.border} />
-            <Text style={styles.emptyTitle}>No Prescription Punch-Cards</Text>
-            <Text style={styles.emptySubtitle}>
-              Add medications on the "Today" tab to start tracking your punch-card streaks!
-            </Text>
-          </View>
-        ) : (
-          medicines.map((med, index) => {
-            const color = CARD_PALETTES[index % CARD_PALETTES.length];
-            const primaryTime = med.reminderTimes[0] || '08:00';
-
-            return (
-              <MedicationPunchCard
-                key={med.id}
-                medicineName={med.name}
-                dosage={med.dosage}
-                time={primaryTime}
-                createdAt={med.createdAt}
-                themeColor={color}
-                logs={logs}
-                onToggleToday={() => handleToggleTodayFromHistory(med.id)}
-                onDelete={() => handleDeleteMedication(med.id, med.name)}
-              />
-            );
-          })
-        )}
-      </ScrollView>
+              return (
+                <MedicationPunchCard
+                  key={med.id}
+                  medicineName={med.name}
+                  dosage={med.dosage}
+                  time={primaryTime}
+                  createdAt={med.createdAt}
+                  themeColor={color}
+                  logs={logs}
+                  onToggleToday={() => handleToggleTodayFromHistory(med.id)}
+                  onDelete={() => handleDeleteMedication(med.id, med.name)}
+                />
+              );
+            })
+          )}
+        </ScrollView>
+      </AnimatedScreenWrapper>
     </SafeAreaView>
   );
 };

@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Animated } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { THEME } from '../constants/theme';
 
@@ -27,6 +27,64 @@ export const CustomAlertModal: React.FC<CustomAlertModalProps> = ({
   onCancel,
 }) => {
   const isTwoButtons = Boolean(cancelText && onCancel);
+  const [internalVisible, setInternalVisible] = useState(visible);
+  const cardScale = useRef(new Animated.Value(0.92)).current;
+  const cardOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      setInternalVisible(true);
+      cardScale.setValue(0.92);
+      cardOpacity.setValue(0);
+      Animated.parallel([
+        Animated.spring(cardScale, {
+          toValue: 1.0,
+          friction: 7,
+          tension: 70,
+          useNativeDriver: true,
+        }),
+        Animated.spring(cardOpacity, {
+          toValue: 1.0,
+          friction: 7,
+          tension: 70,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else if (internalVisible) {
+      Animated.parallel([
+        Animated.timing(cardScale, {
+          toValue: 0.92,
+          duration: 140,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardOpacity, {
+          toValue: 0,
+          duration: 140,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setInternalVisible(false);
+      });
+    }
+  }, [visible, internalVisible, cardScale, cardOpacity]);
+
+  const handleDismiss = (callback?: () => void) => {
+    Animated.parallel([
+      Animated.timing(cardScale, {
+        toValue: 0.92,
+        duration: 140,
+        useNativeDriver: true,
+      }),
+      Animated.timing(cardOpacity, {
+        toValue: 0,
+        duration: 140,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setInternalVisible(false);
+      callback?.();
+    });
+  };
 
   const getBadgeStyle = () => {
     switch (type) {
@@ -45,9 +103,22 @@ export const CustomAlertModal: React.FC<CustomAlertModalProps> = ({
   const badge = getBadgeStyle();
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel || onConfirm}>
+    <Modal
+      visible={internalVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => handleDismiss(onCancel || onConfirm)}
+    >
       <View style={styles.backdrop}>
-        <View style={styles.card}>
+        <Animated.View
+          style={[
+            styles.card,
+            {
+              opacity: cardOpacity,
+              transform: [{ scale: cardScale }],
+            },
+          ]}
+        >
           {/* Status icon badge */}
           <View style={[styles.iconBadge, { backgroundColor: badge.bg, borderColor: badge.border }]}>
             <Feather name={badge.icon as any} size={26} color={badge.iconColor} />
@@ -58,7 +129,11 @@ export const CustomAlertModal: React.FC<CustomAlertModalProps> = ({
 
           <View style={styles.actionRow}>
             {isTwoButtons && onCancel && (
-              <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} activeOpacity={0.8}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => handleDismiss(onCancel)}
+                activeOpacity={0.8}
+              >
                 <Text style={styles.cancelBtnText}>{cancelText}</Text>
               </TouchableOpacity>
             )}
@@ -69,13 +144,13 @@ export const CustomAlertModal: React.FC<CustomAlertModalProps> = ({
                 type === 'danger' ? styles.btnDanger : styles.btnPrimary,
                 !isTwoButtons && { flex: 1 },
               ]}
-              onPress={onConfirm}
+              onPress={() => handleDismiss(onConfirm)}
               activeOpacity={0.85}
             >
               <Text style={styles.confirmBtnText}>{confirmText}</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Keyboard,
   ActivityIndicator,
   ScrollView,
+  Animated,
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -102,12 +103,65 @@ export const DoseNoteModal: React.FC<DoseNoteModalProps> = ({
 }) => {
   const [notes, setNotes] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [internalVisible, setInternalVisible] = useState(visible);
+  const cardScale = useRef(new Animated.Value(0.92)).current;
+  const cardOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
+      setInternalVisible(true);
       setNotes(currentNotes || '');
+      cardScale.setValue(0.92);
+      cardOpacity.setValue(0);
+      Animated.parallel([
+        Animated.spring(cardScale, {
+          toValue: 1.0,
+          friction: 7,
+          tension: 70,
+          useNativeDriver: true,
+        }),
+        Animated.spring(cardOpacity, {
+          toValue: 1.0,
+          friction: 7,
+          tension: 70,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else if (internalVisible) {
+      Animated.parallel([
+        Animated.timing(cardScale, {
+          toValue: 0.92,
+          duration: 140,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardOpacity, {
+          toValue: 0,
+          duration: 140,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setInternalVisible(false);
+      });
     }
-  }, [visible, currentNotes]);
+  }, [visible, internalVisible, currentNotes, cardScale, cardOpacity]);
+
+  const handleDismiss = (callback?: () => void) => {
+    Animated.parallel([
+      Animated.timing(cardScale, {
+        toValue: 0.92,
+        duration: 140,
+        useNativeDriver: true,
+      }),
+      Animated.timing(cardOpacity, {
+        toValue: 0,
+        duration: 140,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setInternalVisible(false);
+      callback?.();
+    });
+  };
 
   const handleTagPress = (tagLabel: string) => {
     try {
@@ -132,23 +186,35 @@ export const DoseNoteModal: React.FC<DoseNoteModalProps> = ({
     setIsSaving(true);
     try {
       await onSave(notes.trim());
-      onClose();
+      handleDismiss(onClose);
     } catch (err) {
       console.error('Failed to save dose notes:', err);
-    } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={internalVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => handleDismiss(onClose)}
+    >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.backdrop}>
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={styles.keyboardView}
           >
-            <View style={styles.card}>
+            <Animated.View
+              style={[
+                styles.card,
+                {
+                  opacity: cardOpacity,
+                  transform: [{ scale: cardScale }],
+                },
+              ]}
+            >
               {/* Header */}
               <View style={styles.headerRow}>
                 <View style={styles.headerBadge}>
@@ -164,7 +230,12 @@ export const DoseNoteModal: React.FC<DoseNoteModalProps> = ({
                     </View>
                   </View>
                 </View>
-                <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <TouchableOpacity
+                  onPress={() => handleDismiss(onClose)}
+                  style={styles.closeBtn}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
                   <Feather name="x" size={20} color={THEME.colors.textMuted} />
                 </TouchableOpacity>
               </View>
@@ -251,7 +322,7 @@ export const DoseNoteModal: React.FC<DoseNoteModalProps> = ({
               <View style={styles.actionRow}>
                 <TouchableOpacity
                   style={styles.cancelBtn}
-                  onPress={onClose}
+                  onPress={() => handleDismiss(onClose)}
                   disabled={isSaving}
                   activeOpacity={0.8}
                 >
@@ -274,7 +345,7 @@ export const DoseNoteModal: React.FC<DoseNoteModalProps> = ({
                   )}
                 </TouchableOpacity>
               </View>
-            </View>
+            </Animated.View>
           </KeyboardAvoidingView>
         </View>
       </TouchableWithoutFeedback>

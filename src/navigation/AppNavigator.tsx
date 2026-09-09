@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { StyleSheet, Platform, View, TouchableOpacity } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { StyleSheet, Platform, View, TouchableOpacity, Animated } from 'react-native';
 import { createBottomTabNavigator, BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
+import * as Haptics from 'expo-haptics';
 import { THEME } from '../constants/theme';
 import { MedicineManagerScreen } from '../screens/MedicineManagerScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
@@ -20,21 +21,41 @@ export type RootTabParamList = {
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+
 const SeniorFriendlyTabButton: React.FC<BottomTabBarButtonProps> = (props: any) => {
-  const focused = props.accessibilityState?.selected;
+  const focused = Boolean(props.accessibilityState?.selected);
+  const scaleAnim = useRef(new Animated.Value(focused ? 1.06 : 1.0)).current;
+
+  useEffect(() => {
+    Animated.spring(scaleAnim, {
+      toValue: focused ? 1.06 : 1.0,
+      friction: 5,
+      tension: 100,
+      useNativeDriver: true,
+    }).start();
+  }, [focused, scaleAnim]);
+
+  const handlePress = (e: any) => {
+    Haptics.selectionAsync().catch(() => {});
+    props.onPress?.(e);
+  };
+
   const { delayLongPress, style, children, ...restProps } = props;
   return (
-    <TouchableOpacity
+    <AnimatedTouchableOpacity
       {...restProps}
+      onPress={handlePress}
       activeOpacity={0.7}
       style={[
         style,
         styles.tabBarButton,
         focused && styles.tabBarButtonFocused,
+        { transform: [{ scale: scaleAnim }] },
       ]}
     >
       {children}
-    </TouchableOpacity>
+    </AnimatedTouchableOpacity>
   );
 };
 

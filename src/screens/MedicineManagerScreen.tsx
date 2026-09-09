@@ -40,6 +40,7 @@ import {
   scheduleMedicationReminder,
   cancelMedicationReminders,
 } from '../services/notificationService';
+import { AnimatedScreenWrapper } from '../components/AnimatedScreenWrapper';
 
 const PRESET_MEDICINES = [
   { name: 'Amlodipine (Blood Pressure)', icon: 'heart-pulse', defaultDose: '5 mg' },
@@ -457,8 +458,9 @@ export const MedicineManagerScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* 1. TOP HEADER */}
-      <View style={styles.topHeader}>
+      <AnimatedScreenWrapper style={{ flex: 1 }}>
+        {/* 1. TOP HEADER */}
+        <View style={styles.topHeader}>
         <View style={styles.headerLeft}>
           <View style={styles.headerGreetingRow}>
             <View style={styles.caregiverModeBadge}>
@@ -700,6 +702,7 @@ export const MedicineManagerScreen: React.FC = () => {
           </View>
         )}
       </View>
+      </AnimatedScreenWrapper>
 
       {/* 5. ADD / EDIT PRESCRIPTION MODAL */}
       <Modal

@@ -1,73 +1,93 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ImageBackground,
+  Image,
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
   Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface EditorialHeroProps {
   onGetStarted: () => void;
 }
 
 export const EditorialHeroScreen: React.FC<EditorialHeroProps> = ({ onGetStarted }) => {
+  const [imageError, setImageError] = useState(false);
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* LIFESTYLE BACKGROUND IMAGE WITH WARM SUNLIGHT */}
-      <ImageBackground
-        source={{
-          uri: 'https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&w=1200&q=80',
-        }}
-        style={styles.bgImage}
-      >
-        {/* CINEMATIC DARK OVERLAY FOR TEXT READABILITY */}
-        <View style={styles.overlay}>
-          <SafeAreaView style={styles.contentWrapper}>
-            {/* TOP HEADER SECTION */}
-            <View style={styles.topSection}>
-              <View style={styles.categoryPill}>
-                <Text style={styles.categoryPillText}>SENIOR CARE • VITALS • MEDICATION</Text>
-              </View>
-              <Text style={styles.heroHeadline}>
-                Peace of mind,{'\n'}for the ones{'\n'}who raised you.
-              </Text>
-            </View>
+      {/* BASE GRADIENT FALLBACK (Always visible offline or during 403) */}
+      <LinearGradient
+        colors={['#0F172A', '#1E3A8A', '#0B1120']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+      />
 
-            {/* BOTTOM FOOTER SECTION */}
-            <View style={styles.bottomSection}>
-              <View style={styles.featurePillsRow}>
-                <View style={styles.miniTag}>
-                  <Text style={styles.miniTagText}>Offline SQLite</Text>
-                </View>
-                <View style={styles.miniTag}>
-                  <Text style={styles.miniTagText}>Galaxy Fold Ready</Text>
-                </View>
-                <View style={styles.miniTag}>
-                  <Text style={styles.miniTagText}>Doctor PDF</Text>
-                </View>
-              </View>
+      {/* REMOTE LIFESTYLE BACKGROUND IMAGE WITH GRACEFUL ERROR HANDLING */}
+      {!imageError && (
+        <Image
+          source={{
+            uri: 'https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?auto=format&fit=crop&w=1200&q=80',
+          }}
+          style={StyleSheet.absoluteFillObject}
+          resizeMode="cover"
+          onError={() => setImageError(true)}
+        />
+      )}
 
-              <TouchableOpacity
-                style={styles.primaryCta}
-                onPress={onGetStarted}
-                activeOpacity={0.88}
-              >
-                <Text style={styles.primaryCtaText}>Open Caregiver Portal</Text>
-                <Feather name="arrow-right" size={20} color="#0F172A" />
-              </TouchableOpacity>
+      {/* CINEMATIC DARK OVERLAY FOR TEXT READABILITY */}
+      <LinearGradient
+        colors={['rgba(15, 23, 42, 0.72)', 'rgba(15, 23, 42, 0.42)', 'rgba(15, 23, 42, 0.88)']}
+        locations={[0, 0.45, 1]}
+        style={StyleSheet.absoluteFillObject}
+      />
 
-              <Text style={styles.subHint}>HIPAA-aware • No external tracking required</Text>
-            </View>
-          </SafeAreaView>
+      {/* HERO CONTENT */}
+      <SafeAreaView style={styles.contentWrapper}>
+        {/* TOP HEADER SECTION */}
+        <View style={styles.topSection}>
+          <View style={styles.categoryPill}>
+            <Text style={styles.categoryPillText}>SENIOR CARE • VITALS • MEDICATION</Text>
+          </View>
+          <Text style={styles.heroHeadline}>
+            Peace of mind,{'\n'}for the ones{'\n'}who raised you.
+          </Text>
         </View>
-      </ImageBackground>
+
+        {/* BOTTOM FOOTER SECTION */}
+        <View style={styles.bottomSection}>
+          <View style={styles.featurePillsRow}>
+            <View style={styles.miniTag}>
+              <Text style={styles.miniTagText}>Offline SQLite</Text>
+            </View>
+            <View style={styles.miniTag}>
+              <Text style={styles.miniTagText}>Galaxy Fold Ready</Text>
+            </View>
+            <View style={styles.miniTag}>
+              <Text style={styles.miniTagText}>Doctor PDF</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.primaryCta}
+            onPress={onGetStarted}
+            activeOpacity={0.88}
+          >
+            <Text style={styles.primaryCtaText}>Open Caregiver Portal</Text>
+            <Feather name="arrow-right" size={20} color="#0F172A" />
+          </TouchableOpacity>
+
+          <Text style={styles.subHint}>HIPAA-aware • No external tracking required</Text>
+        </View>
+      </SafeAreaView>
     </View>
   );
 };
@@ -76,16 +96,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0F172A',
-  },
-  bgImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.55)', // Dark cinematic overlay
-    justifyContent: 'space-between',
   },
   contentWrapper: {
     flex: 1,

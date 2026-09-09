@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { LogRepo, DailyLogItem } from '../database/logRepo';
-import { generateDateRange, getWeekdayName, chunkDatesIntoWeeks } from '../utils/dateUtils';
+import { getWeekdayName, formatToISODate } from '../utils/dateUtils';
 
 export type HeatmapPeriod = 'weekly' | 'monthly' | 'overall';
 
@@ -47,16 +47,25 @@ export function useHeatmap(period: HeatmapPeriod = 'monthly') {
     setError(null);
 
     try {
-      // 1. Determine date span based on selected period
-      // weekly: 7 days, monthly: 35 days (5 rolling weeks), overall: 364 days (52 rolling weeks)
-      let daysCount = 35;
-      if (period === 'weekly') daysCount = 7;
-      if (period === 'overall') daysCount = 364;
+      // 1. Determine number of weeks based on selected period
+      // weekly: 1 week (7 days: Mon-Sun), monthly: 5 weeks (35 days), overall: 52 weeks (364 days)
+      let numWeeks = 5;
+      if (period === 'weekly') numWeeks = 1;
+      if (period === 'overall') numWeeks = 52;
 
-      // 2. Generate sequential historical date range
-      const rawDateRange = generateDateRange(daysCount);
-      // Reverse so dates flow chronologically: past -> present (left to right)
-      const chronologicalDates = [...rawDateRange].reverse();
+      // 2. Align start of grid strictly to Monday of the starting week (matching MedicationPunchCard)
+      const today = new Date();
+      const todayStr = formatToISODate(today);
+
+      // Find Monday of current week (0 = Sun, 1 = Mon, ..., 6 = Sat)
+      const currentDay = today.getDay();
+      const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
+      const currentMonday = new Date(today);
+      currentMonday.setDate(today.getDate() - daysFromMonday);
+
+      // Starting Monday for the earliest week in the matrix
+      const startMonday = new Date(currentMonday);
+      startMonday.setDate(currentMonday.getDate() - (numWeeks - 1) * 7);
 
       // 3. Fetch all intake records from SQLite
       const allLogs = await LogRepo.getAllLogs();
@@ -70,49 +79,69 @@ export function useHeatmap(period: HeatmapPeriod = 'monthly') {
         logsByDateMap.get(log.date)!.push(log);
       }
 
-      // 4. Map each calendar date into aggregated compliance status
+      // 4. Build 7-day columns matrix strictly mapped from Monday (index 0) to Sunday (index 6)
       let totalScheduled = 0;
       let totalTaken = 0;
       let perfectDays = 0;
+      const allEntries: HeatmapDayEntry[] = [];
+      const computedMatrix: HeatmapWeekColumn[] = [];
 
-      const mappedEntries: HeatmapDayEntry[] = chronologicalDates.map((dateStr) => {
-        const dayLogs = logsByDateMap.get(dateStr) || [];
-        const total = dayLogs.length;
-        const taken = dayLogs.filter((l) => l.isTaken).length;
+      for (let w = 0; w < numWeeks; w++) {
+        const weekEntries: HeatmapDayEntry[] = [];
 
-        totalScheduled += total;
-        totalTaken += taken;
+        for (let d = 0; d < 7; d++) {
+          const cellDate = new Date(startMonday);
+          cellDate.setDate(startMonday.getDate() + w * 7 + d);
+          const dateStr = formatToISODate(cellDate);
+          const isFuture = dateStr > todayStr;
 
-        let status: DayComplianceStatus = 'none';
-        let rate = 0;
+          const dayLogs = logsByDateMap.get(dateStr) || [];
+          const total = dayLogs.length;
+          const taken = dayLogs.filter((l) => l.isTaken).length;
 
-        if (total > 0) {
-          rate = Math.round((taken / total) * 100);
-          if (taken === total) {
-            status = 'taken';
-            perfectDays += 1;
-          } else if (taken > 0) {
-            status = 'partial';
-          } else {
-            status = 'skipped';
+          let status: DayComplianceStatus = 'none';
+          let rate = 0;
+
+          if (!isFuture && total > 0) {
+            totalScheduled += total;
+            totalTaken += taken;
+            rate = Math.round((taken / total) * 100);
+
+            if (taken === total) {
+              status = 'taken';
+              perfectDays += 1;
+            } else if (taken > 0) {
+              status = 'partial';
+            } else {
+              status = 'skipped';
+            }
           }
+
+          const entry: HeatmapDayEntry = {
+            date: dateStr,
+            status,
+            totalCount: total,
+            takenCount: taken,
+            adherenceRate: rate,
+            dayName: getWeekdayName(dateStr),
+            items: dayLogs,
+          };
+
+          weekEntries.push(entry);
+          allEntries.push(entry);
         }
 
-        return {
-          date: dateStr,
-          status,
-          totalCount: total,
-          takenCount: taken,
-          adherenceRate: rate,
-          dayName: getWeekdayName(dateStr),
-          items: dayLogs,
-        };
-      });
+        computedMatrix.push({
+          weekIndex: w,
+          days: weekEntries,
+        });
+      }
 
       // 5. Calculate consecutive adherence streak (from today backwards)
       let currentStreak = 0;
-      for (let i = mappedEntries.length - 1; i >= 0; i--) {
-        const entry = mappedEntries[i];
+      const pastOrTodayEntries = allEntries.filter((e) => e.date <= todayStr);
+      for (let i = pastOrTodayEntries.length - 1; i >= 0; i--) {
+        const entry = pastOrTodayEntries[i];
         if (entry.status === 'taken') {
           currentStreak += 1;
         } else if (entry.status === 'skipped' || entry.status === 'partial') {
@@ -120,33 +149,10 @@ export function useHeatmap(period: HeatmapPeriod = 'monthly') {
         }
       }
 
-      // 6. Build 7-day columns matrix for Contribution/Punch-card Grid
-      const chunkedWeeks = chunkDatesIntoWeeks(chronologicalDates);
-      const computedMatrix: HeatmapWeekColumn[] = chunkedWeeks.map((weekDates, idx) => {
-        const weekEntries = weekDates.map((d) => {
-          return (
-            mappedEntries.find((e) => e.date === d) || {
-              date: d,
-              status: 'none' as DayComplianceStatus,
-              totalCount: 0,
-              takenCount: 0,
-              adherenceRate: 0,
-              dayName: getWeekdayName(d),
-              items: [],
-            }
-          );
-        });
-
-        return {
-          weekIndex: idx,
-          days: weekEntries,
-        };
-      });
-
       const overallAdherence =
         totalScheduled > 0 ? Math.round((totalTaken / totalScheduled) * 100) : 100;
 
-      setData(mappedEntries);
+      setData(allEntries);
       setWeeksMatrix(computedMatrix);
       setSummary({
         overallAdherence,

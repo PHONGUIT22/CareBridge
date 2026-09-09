@@ -170,43 +170,55 @@ export const AnalyticsScreen: React.FC = () => {
             {metric === 'hr' && 'Resting Heart Rate (BPM)'}
           </Text>
 
-          {metric === 'bp' && (
-            <View style={styles.legendRow}>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#DC2626' }]} />
-                <Text style={styles.legendText}>Systolic</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#2563EB' }]} />
-                <Text style={styles.legendText}>Diastolic</Text>
-              </View>
+          {displayData.length < 2 ? (
+            <View style={styles.emptyChartContainer}>
+              <MaterialCommunityIcons name="chart-bell-curve" size={44} color="#94A3B8" />
+              <Text style={styles.emptyChartTitle}>Insufficient Clinical Records</Text>
+              <Text style={styles.emptyChartSub}>
+                Need at least 2 consecutive recordings to plot clinical trend curves. Tap + Log Vitals to record today's vitals.
+              </Text>
             </View>
-          )}
+          ) : (
+            <>
+              {metric === 'bp' && (
+                <View style={styles.legendRow}>
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: '#DC2626' }]} />
+                    <Text style={styles.legendText}>Systolic</Text>
+                  </View>
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: '#2563EB' }]} />
+                    <Text style={styles.legendText}>Diastolic</Text>
+                  </View>
+                </View>
+              )}
 
-          <LineChart
-            data={{
-              labels,
-              datasets: getDatasets(),
-            }}
-            width={screenWidth - 48}
-            height={220}
-            withDots={displayData.length <= 14}
-            chartConfig={{
-              backgroundColor: '#FFFFFF',
-              backgroundGradientFrom: '#FFFFFF',
-              backgroundGradientTo: '#FFFFFF',
-              decimalPlaces: 0,
-              color: (opacity = 1) => `rgba(15, 23, 42, ${opacity})`,
-              labelColor: (opacity = 1) => `rgba(100, 116, 139, ${opacity})`,
-              propsForDots: {
-                r: displayData.length > 7 ? '2' : '4',
-                strokeWidth: '1',
-                stroke: '#FFFFFF',
-              },
-            }}
-            bezier
-            style={styles.chart}
-          />
+              <LineChart
+                data={{
+                  labels,
+                  datasets: getDatasets(),
+                }}
+                width={screenWidth - 48}
+                height={220}
+                withDots={displayData.length <= 14}
+                chartConfig={{
+                  backgroundColor: '#FFFFFF',
+                  backgroundGradientFrom: '#FFFFFF',
+                  backgroundGradientTo: '#FFFFFF',
+                  decimalPlaces: 0,
+                  color: (opacity = 1) => `rgba(15, 23, 42, ${opacity})`,
+                  labelColor: (opacity = 1) => `rgba(100, 116, 139, ${opacity})`,
+                  propsForDots: {
+                    r: displayData.length > 7 ? '2' : '4',
+                    strokeWidth: '1',
+                    stroke: '#FFFFFF',
+                  },
+                }}
+                bezier={displayData.length >= 2}
+                style={styles.chart}
+              />
+            </>
+          )}
         </View>
 
         {/* Clinical observation card based on chart data */}
@@ -215,9 +227,13 @@ export const AnalyticsScreen: React.FC = () => {
           <View style={{ flex: 1 }}>
             <Text style={styles.adviceTitle}>Clinical Observation</Text>
             <Text style={styles.adviceDesc}>
-              {metric === 'bp' && 'Readings remain within stable ranges. Consistent medication intake keeps baseline blood pressure normalized.'}
-              {metric === 'sugar' && 'Fasting sugar metrics correlate well with scheduled meal and prescription timings.'}
-              {metric === 'hr' && 'Sinus rhythm is regular. No abrupt spikes detected in recent records.'}
+              {displayData.length < 2
+                ? 'Awaiting more vitals data. Daily biometric logs help detect hypertension patterns and glucose fluctuations early.'
+                : metric === 'bp'
+                ? 'Readings remain within stable ranges. Consistent medication intake keeps baseline blood pressure normalized.'
+                : metric === 'sugar'
+                ? 'Fasting sugar metrics correlate well with scheduled meal and prescription timings.'
+                : 'Sinus rhythm is regular. No abrupt spikes detected in recent records.'}
             </Text>
           </View>
         </View>
@@ -327,6 +343,28 @@ const styles = StyleSheet.create({
     color: THEME.colors.textPrimary,
     alignSelf: 'flex-start',
     marginBottom: 8,
+  },
+  emptyChartContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    width: '100%',
+  },
+  emptyChartTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: THEME.colors.textPrimary,
+    marginTop: 10,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  emptyChartSub: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: THEME.colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   legendRow: {
     flexDirection: 'row',

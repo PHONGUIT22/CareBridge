@@ -6,6 +6,7 @@ import {
   Modal,
   TouchableOpacity,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { THEME } from '../constants/theme';
 import { SubscriptionService } from '../services/revenuecat';
@@ -18,6 +19,36 @@ interface PaywallModalProps {
   onUnlocked: () => void | Promise<void>;
 }
 
+interface FallbackPlan {
+  id: string;
+  title: string;
+  price: string;
+  description: string;
+  isPopular?: boolean;
+}
+
+const FALLBACK_PLANS: FallbackPlan[] = [
+  {
+    id: 'monthly',
+    title: 'Monthly',
+    price: '$9.99',
+    description: 'Unlimited punch-cards, PDF export & family alerts',
+    isPopular: true,
+  },
+  {
+    id: 'yearly',
+    title: 'Yearly',
+    price: '$79.99',
+    description: 'Unlimited punch-cards, PDF export & family alerts',
+  },
+  {
+    id: 'lifetime',
+    title: 'Lifetime',
+    price: '$99.99',
+    description: 'Unlimited punch-cards, PDF export & family alerts',
+  },
+];
+
 export const PaywallModal: React.FC<PaywallModalProps> = ({
   visible,
   onClose,
@@ -27,6 +58,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [packages, setPackages] = useState<any[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<any | null>(null);
+  const [selectedFallbackId, setSelectedFallbackId] = useState<string>('monthly');
   const [fetchingPackages, setFetchingPackages] = useState(false);
 
   useEffect(() => {
@@ -51,6 +83,12 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
   };
 
   const handlePurchase = async () => {
+    // If in Fallback/Demo mode without store packages, trigger instant demo unlock
+    if (packages.length === 0) {
+      await handleDemoUnlock();
+      return;
+    }
+
     setLoading(true);
     try {
       const success = await SubscriptionService.purchasePro(selectedPackage);
@@ -128,111 +166,149 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
             <Feather name="x" size={24} color={THEME.light.textSecondary} />
           </TouchableOpacity>
 
-          <View style={styles.badge}>
-            <MaterialCommunityIcons name="crown" size={16} color="#B45309" />
-            <Text style={styles.badgeText}>CAREBRIDGE PRO PAYWALL</Text>
-          </View>
-
-          <Text style={styles.title}>Unlock Clinical Power</Text>
-          <Text style={styles.subtitle}>
-            You have reached the Free limit (2 prescriptions). Upgrade to Pro for unlimited tracking & doctor reports.
-          </Text>
-
-          <View style={styles.featuresList}>
-            <View style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={22} color={THEME.colors.statusTaken} />
-              <Text style={styles.featureText}>Unlimited Prescription Punch-Cards (No 2-med limit)</Text>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            bounces={false}
+          >
+            <View style={styles.badge}>
+              <MaterialCommunityIcons name="crown" size={16} color="#B45309" />
+              <Text style={styles.badgeText}>CAREBRIDGE PRO PAYWALL</Text>
             </View>
 
-            <View style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={22} color={THEME.colors.statusTaken} />
-              <Text style={styles.featureText}>Export Certified Clinical PDF Reports for Doctors</Text>
-            </View>
+            <Text style={styles.title}>Unlock Clinical Power</Text>
+            <Text style={styles.subtitle}>
+              You have reached the Free limit (2 prescriptions). Upgrade to Pro for unlimited tracking & doctor reports.
+            </Text>
 
-            <View style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={22} color={THEME.colors.statusTaken} />
-              <Text style={styles.featureText}>Family Cloud Caregiver Alerts (OneSignal)</Text>
-            </View>
-          </View>
-
-          {/* DYNAMIC SERVER PRICING OPTIONS */}
-          {fetchingPackages ? (
-            <View style={styles.loadingBox}>
-              <ActivityIndicator size="small" color={THEME.colors.primary} />
-              <Text style={styles.loadingBoxText}>Loading live pricing from RevenueCat...</Text>
-            </View>
-          ) : packages.length > 0 ? (
-            <View style={styles.packagesContainer}>
-              {packages.map((pkg) => {
-                const isSelected = selectedPackage?.identifier === pkg.identifier;
-                const pkgTitle = pkg.product?.title || (pkg.identifier === '$rc_monthly' ? 'Monthly Pro Plan' : 'CareBridge Pro');
-                const pkgPrice = pkg.product?.priceString || '$4.99';
-                const pkgSub = pkg.product?.description || 'Unlimited punch-cards, PDF export & family alerts';
-
-                return (
-                  <TouchableOpacity
-                    key={pkg.identifier}
-                    style={[
-                      styles.pricingBox,
-                      isSelected && styles.pricingBoxSelected,
-                    ]}
-                    onPress={() => setSelectedPackage(pkg)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.pricingLeft}>
-                      <View style={styles.planHeaderRow}>
-                        <Text style={styles.pricingTitle}>{pkgTitle}</Text>
-                        {pkg.identifier === '$rc_monthly' && (
-                          <View style={styles.popularBadge}>
-                            <Text style={styles.popularBadgeText}>POPULAR</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text style={styles.pricingSub}>{pkgSub}</Text>
-                    </View>
-                    <Text style={styles.priceTag}>{pkgPrice}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          ) : (
-            <View style={styles.pricingBox}>
-              <View style={styles.pricingLeft}>
-                <Text style={styles.pricingTitle}>Pro Monthly Plan</Text>
-                <Text style={styles.pricingSub}>7-Day Free Trial, then $4.99/mo</Text>
+            <View style={styles.featuresList}>
+              <View style={styles.featureRow}>
+                <Ionicons name="checkmark-circle" size={22} color={THEME.colors.statusTaken} />
+                <Text style={styles.featureText}>Unlimited Prescription Punch-Cards (No 2-med limit)</Text>
               </View>
-              <Text style={styles.priceTag}>$4.99</Text>
+
+              <View style={styles.featureRow}>
+                <Ionicons name="checkmark-circle" size={22} color={THEME.colors.statusTaken} />
+                <Text style={styles.featureText}>Export Certified Clinical PDF Reports for Doctors</Text>
+              </View>
+
+              <View style={styles.featureRow}>
+                <Ionicons name="checkmark-circle" size={22} color={THEME.colors.statusTaken} />
+                <Text style={styles.featureText}>Family Cloud Caregiver Alerts (OneSignal)</Text>
+              </View>
             </View>
-          )}
 
-          {/* PRO UPGRADE BUTTON */}
-          <TouchableOpacity
-            style={styles.purchaseBtn}
-            onPress={handlePurchase}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+            {/* DYNAMIC SERVER PRICING OPTIONS OR 3-TIER DEMO FALLBACK */}
+            {fetchingPackages ? (
+              <View style={styles.loadingBox}>
+                <ActivityIndicator size="small" color={THEME.colors.primary} />
+                <Text style={styles.loadingBoxText}>Loading live pricing from RevenueCat...</Text>
+              </View>
+            ) : packages.length > 0 ? (
+              <View style={styles.packagesContainer}>
+                {packages.map((pkg) => {
+                  const isSelected = selectedPackage?.identifier === pkg.identifier;
+                  const pkgTitle = pkg.product?.title || (pkg.identifier === '$rc_monthly' ? 'Monthly Pro Plan' : 'CareBridge Pro');
+                  const pkgPrice = pkg.product?.priceString || '$4.99';
+                  const pkgSub = pkg.product?.description || 'Unlimited punch-cards, PDF export & family alerts';
+
+                  return (
+                    <TouchableOpacity
+                      key={pkg.identifier}
+                      style={[
+                        styles.pricingBox,
+                        isSelected && styles.pricingBoxSelected,
+                      ]}
+                      onPress={() => setSelectedPackage(pkg)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.pricingLeft}>
+                        <View style={styles.planHeaderRow}>
+                          <Text style={styles.pricingTitle}>{pkgTitle}</Text>
+                          {pkg.identifier === '$rc_monthly' && (
+                            <View style={styles.popularBadge}>
+                              <Text style={styles.popularBadgeText}>POPULAR</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={styles.pricingSub}>{pkgSub}</Text>
+                      </View>
+                      <Text style={styles.priceTag}>{pkgPrice}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             ) : (
-              <Text style={styles.purchaseBtnText}>START FREE TRIAL & UNLOCK PRO</Text>
+              <View style={styles.fallbackSection}>
+                <View style={styles.demoModeBadge}>
+                  <Ionicons name="flash" size={13} color="#B45309" />
+                  <Text style={styles.demoModeBadgeText}>DEMO MODE • SIMULATED PACKAGES</Text>
+                </View>
+
+                <View style={styles.packagesContainer}>
+                  {FALLBACK_PLANS.map((plan) => {
+                    const isSelected = selectedFallbackId === plan.id;
+                    return (
+                      <TouchableOpacity
+                        key={plan.id}
+                        style={[
+                          styles.pricingBox,
+                          isSelected && styles.pricingBoxSelected,
+                        ]}
+                        onPress={() => setSelectedFallbackId(plan.id)}
+                        activeOpacity={0.8}
+                      >
+                        <View style={styles.pricingLeft}>
+                          <View style={styles.planHeaderRow}>
+                            <Text style={styles.pricingTitle}>{plan.title}</Text>
+                            {plan.isPopular && (
+                              <View style={styles.popularBadge}>
+                                <Text style={styles.popularBadgeText}>POPULAR</Text>
+                              </View>
+                            )}
+                            <View style={styles.demoPlanBadge}>
+                              <Text style={styles.demoPlanBadgeText}>DEMO</Text>
+                            </View>
+                          </View>
+                          <Text style={styles.pricingSub}>{plan.description}</Text>
+                        </View>
+                        <Text style={styles.priceTag}>{plan.price}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
             )}
-          </TouchableOpacity>
 
-          {/* DEMO BYPASS FOR EVALUATORS & EXPO GO TESTING */}
-          <TouchableOpacity
-            style={styles.demoUnlockBtn}
-            onPress={handleDemoUnlock}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="flash" size={15} color="#0284C7" />
-            <Text style={styles.demoUnlockBtnText}>[Demo] Instant Unlock Pro (Bypass Store)</Text>
-          </TouchableOpacity>
+            {/* PRO UPGRADE BUTTON */}
+            <TouchableOpacity
+              style={styles.purchaseBtn}
+              onPress={handlePurchase}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.purchaseBtnText}>START FREE TRIAL & UNLOCK PRO</Text>
+              )}
+            </TouchableOpacity>
 
-          {/* RESET TO FREE TIER BUTTON FOR TESTING */}
-          <TouchableOpacity style={styles.resetBtn} onPress={handleResetFree}>
-            <Text style={styles.resetBtnText}>[Judge Demo] Reset to Free Plan (Lock Features)</Text>
-          </TouchableOpacity>
+            {/* DEMO BYPASS FOR EVALUATORS & EXPO GO TESTING */}
+            <TouchableOpacity
+              style={styles.demoUnlockBtn}
+              onPress={handleDemoUnlock}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="flash" size={15} color="#0284C7" />
+              <Text style={styles.demoUnlockBtnText}>[Demo] Instant Unlock Pro (Bypass Store)</Text>
+            </TouchableOpacity>
+
+            {/* RESET TO FREE TIER BUTTON FOR TESTING */}
+            <TouchableOpacity style={styles.resetBtn} onPress={handleResetFree}>
+              <Text style={styles.resetBtnText}>[Judge Demo] Reset to Free Plan (Lock Features)</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -249,12 +325,17 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.light.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    padding: 24,
-    paddingBottom: 36,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 24,
+    maxHeight: '90%',
   },
   closeBtn: {
     alignSelf: 'flex-end',
     padding: 4,
+  },
+  scrollContent: {
+    paddingBottom: 16,
   },
   badge: {
     flexDirection: 'row',
@@ -299,6 +380,28 @@ const styles = StyleSheet.create({
     color: THEME.light.textPrimary,
     flex: 1,
   },
+  fallbackSection: {
+    marginBottom: 16,
+  },
+  demoModeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+  demoModeBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#B45309',
+    letterSpacing: 0.5,
+  },
   packagesContainer: {
     gap: 10,
     marginBottom: 16,
@@ -319,18 +422,17 @@ const styles = StyleSheet.create({
     color: THEME.colors.primary,
   },
   pricingBox: {
-    backgroundColor: THEME.colors.primaryLight,
-    borderWidth: 2,
-    borderColor: THEME.colors.primary,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
     borderRadius: 16,
-    padding: 16,
+    padding: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
   },
   pricingBoxSelected: {
-    borderColor: THEME.colors.primary,
+    borderColor: '#1E3A8A',
     backgroundColor: '#EFF6FF',
     borderWidth: 2.5,
   },
@@ -354,21 +456,35 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
   },
+  demoPlanBadge: {
+    backgroundColor: '#E0F2FE',
+    borderWidth: 0.5,
+    borderColor: '#BAE6FD',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 5,
+  },
+  demoPlanBadgeText: {
+    color: '#0284C7',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
   pricingTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: THEME.colors.primary,
+    color: '#1E3A8A',
   },
   pricingSub: {
     fontSize: 12,
     fontWeight: '600',
-    color: THEME.light.textSecondary,
+    color: '#64748B',
     marginTop: 2,
   },
   priceTag: {
     fontSize: 22,
     fontWeight: '900',
-    color: THEME.colors.primary,
+    color: '#1E3A8A',
   },
   purchaseBtn: {
     backgroundColor: THEME.colors.primary,

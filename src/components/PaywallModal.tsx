@@ -55,14 +55,16 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
     try {
       const success = await SubscriptionService.purchasePro(selectedPackage);
       if (success) {
-        showAlert({
-          title: '🎉 Welcome to Pro!',
-          message: 'Unlimited prescriptions & Clinical PDF Export unlocked.',
-          type: 'success',
-          confirmText: 'Great!',
-        });
         await onUnlocked();
         onClose();
+        setTimeout(() => {
+          showAlert({
+            title: '🎉 Welcome to Pro!',
+            message: 'Unlimited prescriptions & Clinical PDF Export unlocked.',
+            type: 'success',
+            confirmText: 'Great!',
+          });
+        }, 350);
       } else {
         // Fallback for emulator / Expo Go / sandbox without native store billing
         showAlert({
@@ -94,24 +96,28 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({
 
   const handleDemoUnlock = async () => {
     SubscriptionService.setLocalPro(true);
-    showAlert({
-      title: '⚡ Pro Unlocked (Demo)',
-      message: 'Pro entitlements active! Unlimited prescriptions & Doctor PDF Export are now unlocked.',
-      type: 'success',
-    });
     await onUnlocked();
     onClose();
+    setTimeout(() => {
+      showAlert({
+        title: '🎉 Pro Unlocked (Demo)',
+        message: 'Pro entitlements active! Unlimited prescriptions & Doctor PDF Export are now unlocked.',
+        type: 'success',
+      });
+    }, 350);
   };
 
   const handleResetFree = async () => {
     await SubscriptionService.resetToFree();
-    showAlert({
-      title: 'Reset Free Tier',
-      message: 'App reverted to Free plan (Max 2 prescriptions).',
-      type: 'info',
-    });
     await onUnlocked();
     onClose();
+    setTimeout(() => {
+      showAlert({
+        title: 'Reset Free Tier',
+        message: 'App reverted to Free plan (Max 2 prescriptions).',
+        type: 'info',
+      });
+    }, 350);
   };
 
   return (

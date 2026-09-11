@@ -13,6 +13,7 @@ export const ENTITLEMENT_ID = 'carebridge_pro';
 
 // Local cached state and listeners for real-time entitlement synchronization
 let isProCached: boolean = false;
+let isDemoOverride: boolean = false;
 type EntitlementListener = (isPro: boolean, customerInfo?: CustomerInfo) => void;
 const entitlementListeners: Set<EntitlementListener> = new Set();
 
@@ -28,6 +29,10 @@ export const RevenueCatService = {
 
       // Automatically sync entitlement state when customer info updates from server
       Purchases.addCustomerInfoUpdateListener((info: CustomerInfo) => {
+        if (isDemoOverride) {
+          console.log('[RevenueCat] CustomerInfo update ignored because demo override is active.');
+          return;
+        }
         isProCached = Boolean(info?.entitlements?.active[ENTITLEMENT_ID]);
         console.log('[RevenueCat] Entitlement state updated automatically. Pro active:', isProCached);
         entitlementListeners.forEach((listener) => {
@@ -92,6 +97,9 @@ export const RevenueCatService = {
    * 4. Check real Pro status from SDK local cache or manual demo override
    */
   async isPro(): Promise<boolean> {
+    if (isDemoOverride) {
+      return true;
+    }
     try {
       const customerInfo = await Purchases.getCustomerInfo();
       const sdkPro = Boolean(customerInfo?.entitlements?.active[ENTITLEMENT_ID]);
@@ -106,11 +114,12 @@ export const RevenueCatService = {
    * Set local Pro entitlement directly (ideal for Expo Go / Simulator demo testing without Store accounts)
    */
   setLocalPro(enabled: boolean): void {
+    isDemoOverride = enabled;
     isProCached = enabled;
     console.log('[RevenueCat] Local entitlement override. Pro active:', isProCached);
     entitlementListeners.forEach((listener) => {
       try {
-        listener(isProCached);
+        listener(enabled);
       } catch (err) {
         console.warn('[RevenueCat Listener Callback Error]:', err);
       }
@@ -121,7 +130,7 @@ export const RevenueCatService = {
    * Synchronous cached Pro status check
    */
   isProSync(): boolean {
-    return isProCached;
+    return isDemoOverride || isProCached;
   },
 
   /**
@@ -183,18 +192,18 @@ export const RevenueCatService = {
    * 7. Reset to Free tier by logging in with fresh guest ID
    */
   async resetToFree(): Promise<void> {
+    isDemoOverride = false;
     isProCached = false;
     try {
       const resetId = `demo_guest_${Date.now()}`;
-      const { customerInfo } = await Purchases.logIn(resetId);
-      isProCached = Boolean(customerInfo?.entitlements?.active[ENTITLEMENT_ID]);
+      await Purchases.logIn(resetId);
       console.log('[RevenueCat] Reset to clean guest user:', resetId);
     } catch (e) {
       console.log('[RevenueCat Reset Error]:', e);
     }
     entitlementListeners.forEach((listener) => {
       try {
-        listener(isProCached);
+        listener(false);
       } catch (err) {
         console.warn('[RevenueCat Listener Callback Error]:', err);
       }

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,13 @@ export const AnalyticsScreen: React.FC = () => {
   const [vitals, setVitals] = useState<VitalsRecord[]>([]);
   const [isPro, setIsPro] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = SubscriptionService.subscribe((proStatus) => {
+      setIsPro(proStatus);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const loadData = useCallback(async () => {
     const list = await VitalsRepo.getAllVitals();
@@ -244,9 +251,10 @@ export const AnalyticsScreen: React.FC = () => {
       <PaywallModal
         visible={showPaywall}
         onClose={() => setShowPaywall(false)}
-        onUnlocked={() => {
-          setIsPro(true);
-          setShowPaywall(false);
+        onUnlocked={async () => {
+          const pro = await SubscriptionService.isPro();
+          setIsPro(pro);
+          await loadData();
         }}
       />
     </SafeAreaView>

@@ -95,7 +95,7 @@ export const RevenueCatService = {
     try {
       const customerInfo = await Purchases.getCustomerInfo();
       const sdkPro = Boolean(customerInfo?.entitlements?.active[ENTITLEMENT_ID]);
-      isProCached = isProCached || sdkPro;
+      isProCached = sdkPro;
       return isProCached;
     } catch (e) {
       return isProCached;

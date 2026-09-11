@@ -6,7 +6,7 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
+  useWindowDimensions,
   Platform,
   StatusBar,
 } from 'react-native';
@@ -21,9 +21,8 @@ import { AnimatedScreenWrapper } from '../components/AnimatedScreenWrapper';
 
 type MetricType = 'bp' | 'sugar' | 'hr';
 
-const screenWidth = Dimensions.get('window').width;
-
 export const AnalyticsScreen: React.FC = () => {
+  const { width } = useWindowDimensions();
   const [metric, setMetric] = useState<MetricType>('bp');
   const [vitals, setVitals] = useState<VitalsRecord[]>([]);
   const [isPro, setIsPro] = useState(false);
@@ -200,7 +199,7 @@ export const AnalyticsScreen: React.FC = () => {
                   labels,
                   datasets: getDatasets(),
                 }}
-                width={screenWidth - 48}
+                width={width - 36}
                 height={220}
                 withDots={displayData.length <= 14}
                 chartConfig={{

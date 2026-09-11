@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Platform,
-  StatusBar,
   Image,
   Animated,
 } from 'react-native';
@@ -18,6 +17,7 @@ import { formatToISODate } from '../utils/dateUtils';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { announceMedication } from '../services/speechService';
 import { AnimatedScreenWrapper } from '../components/AnimatedScreenWrapper';
 
@@ -40,6 +40,7 @@ const isDueWithinWindow = (scheduledTimeStr?: string, windowMinutes: number = 30
 };
 
 export const DeskModeScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const [logs, setLogs] = useState<DailyLogItem[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -177,13 +178,22 @@ export const DeskModeScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        {
+          paddingTop: insets.top + 8,
+          paddingBottom: insets.bottom + 12,
+        },
+      ]}
+    >
       {/* LUXURY FLOATING TOAST NOTIFICATION */}
       {toastMessage && (
         <Animated.View
           style={[
             styles.toastContainer,
             {
+              top: insets.top + 16,
               opacity: toastOpacity,
               transform: [{ translateY: toastTranslateY }],
             },
@@ -312,7 +322,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#070B14', // Deep dark background for eye comfort at night
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 28) + 4 : 12,
   },
   contentWrapper: {
     flex: 1,
@@ -366,6 +375,7 @@ const styles = StyleSheet.create({
   },
   clockSection: {
     flex: 1,
+    flexShrink: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 10,
@@ -479,7 +489,8 @@ const styles = StyleSheet.create({
   },
   giantTakeBtn: {
     backgroundColor: '#10B981',
-    height: 64,
+    minHeight: 56,
+    paddingVertical: 14,
     borderRadius: 18,
     flexDirection: 'row',
     alignItems: 'center',
@@ -521,7 +532,7 @@ const styles = StyleSheet.create({
   },
   toastContainer: {
     position: 'absolute',
-    top: Platform.OS === 'android' ? (StatusBar.currentHeight || 28) + 16 : 30,
+    top: 24,
     left: 20,
     right: 20,
     zIndex: 999,

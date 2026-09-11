@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { THEME } from '../constants/theme';
+import { moderateScale } from '../utils/responsive';
 
 interface SeniorClockProps {
   dark?: boolean;
@@ -56,13 +57,13 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
   },
   timeText: {
-    fontSize: 78,
+    fontSize: moderateScale(62),
     fontWeight: '900',
     letterSpacing: 2,
     fontVariant: ['tabular-nums'],
   },
   secondsText: {
-    fontSize: 34,
+    fontSize: moderateScale(28),
     fontWeight: '700',
     color: '#64748B',
     fontVariant: ['tabular-nums'],

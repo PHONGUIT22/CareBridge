@@ -49,6 +49,10 @@ For hackathon evaluation and review, CareBridge includes RevenueCat test credent
    - Inside the Paywall modal, tap **`[Demo] Instant Unlock Pro`** to immediately activate the CareBridge Pro tier on Expo Go, physical devices, or emulators where native Google Play / Apple StoreKit billing is unavailable. This instantly unlocks the Doctor Clinical PDF Export and 52-Week Habit Punch Card without requiring store sandbox credentials.
    - Evaluators can also tap **`[Judge Demo] Reset to Free Plan`** at any time to re-test the free tier restrictions.
 
+   > **💡 Evaluator Tip — Instant Pro Access & Verification:**
+   > 1. Tap **`[Demo] Instant Unlock Pro`** inside the Paywall → The header badge immediately turns green (**PRO ACTIVE**), unlocking unlimited prescriptions (beyond the 2-med free limit), 90-day vitals charts, and Doctor PDF Export.
+   > 2. Open Paywall again and tap **`[Judge Demo] Reset to Free Plan`** → The badge reverts to amber (**UPGRADE PRO**), re-enabling the 2-prescription free-tier restriction.
+
 ---
 
 ## ✨ Key Features

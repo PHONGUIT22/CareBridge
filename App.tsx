@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { initDB } from './src/database/db';
 import { THEME } from './src/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { RevenueCatService } from './src/services/revenuecat';
 import { AlertProvider } from './src/context/AlertContext';
+
+// Cap OS-level font zoom at 1.15 to prevent Samsung One UI large accessibility fonts from breaking cards and buttons
+if ((Text as any).defaultProps == null) (Text as any).defaultProps = {};
+(Text as any).defaultProps.maxFontSizeMultiplier = 1.15;
+
+if ((TextInput as any).defaultProps == null) (TextInput as any).defaultProps = {};
+(TextInput as any).defaultProps.maxFontSizeMultiplier = 1.15;
 
 export default function App() {
   const [isDbReady, setIsDbReady] = useState<boolean>(false);
@@ -56,14 +64,16 @@ export default function App() {
   }
 
   return (
-    <AlertProvider>
-      <NavigationContainer>
-        <StatusBar style="dark" backgroundColor={THEME.colors.background} />
-        <AppNavigator />
-      </NavigationContainer>
-    </AlertProvider>
+    <SafeAreaProvider>
+      <AlertProvider>
+        <NavigationContainer>
+          <StatusBar style="dark" backgroundColor={THEME.colors.background} />
+          <AppNavigator />
+        </NavigationContainer>
+      </AlertProvider>
+    </SafeAreaProvider>
   );
-}
+};
 
 const styles = StyleSheet.create({
   splashContainer: {

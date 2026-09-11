@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, Platform, View, TouchableOpacity, Animated } from 'react-native';
 import { createBottomTabNavigator, BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { THEME } from '../constants/theme';
 import { MedicineManagerScreen } from '../screens/MedicineManagerScreen';
@@ -60,6 +61,7 @@ const SeniorFriendlyTabButton: React.FC<BottomTabBarButtonProps> = (props: any) 
 };
 
 export const AppNavigator: React.FC = () => {
+  const insets = useSafeAreaInsets();
   const [hasSeenHero, setHasSeenHero] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { isFlexMode } = useFlexMode();
@@ -96,7 +98,13 @@ export const AppNavigator: React.FC = () => {
         headerShown: false,
         tabBarActiveTintColor: '#1E3A8A',
         tabBarInactiveTintColor: '#64748B',
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            bottom: insets.bottom > 0 ? insets.bottom + 8 : 14,
+            height: Platform.OS === 'ios' ? 76 : 68,
+          },
+        ],
         tabBarLabelStyle: styles.tabBarLabel,
         tabBarButton: (props) => <SeniorFriendlyTabButton {...props} />,
       }}

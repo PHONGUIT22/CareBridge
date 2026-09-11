@@ -45,12 +45,17 @@ For hackathon evaluation and review, CareBridge includes RevenueCat test credent
    - `EXPO_PUBLIC_RC_ANDROID_KEY`: Google Play production / sandbox key for RevenueCat.
    - `EXPO_PUBLIC_RC_TEST_KEY`: Development / test store key allowing judges to simulate In-App Purchases and unlock Pro tiers without actual billing.
 
+3. **[Demo] Instant Unlock Pro (No Sandbox Store Account Needed):**
+   - Inside the Paywall modal, tap **`[Demo] Instant Unlock Pro`** to immediately activate the CareBridge Pro tier on Expo Go, physical devices, or emulators where native Google Play / Apple StoreKit billing is unavailable. This instantly unlocks the Doctor Clinical PDF Export and 52-Week Habit Punch Card without requiring store sandbox credentials.
+   - Evaluators can also tap **`[Judge Demo] Reset to Free Plan`** at any time to re-test the free tier restrictions.
+
 ---
 
 ## ✨ Key Features
 
 ### 1. 📅 Daily Medication Hub & Compliance Dashboard
 - **Modern Clinical Health Interface:** Clean cards with pastel classification badges, pill doses, and one-touch "Take Dose" actions.
+- **Care Routine Exemption from Free Limit:** Non-prescription daily care routines (e.g., hydration, morning walk, blood pressure check) are completely exempt from the 2-medication Free limit, enabling patients to track holistic daily health habits without hitting paywalls.
 - **Hero Dashboard:** Real-time compliance score ring, contextual greeting, and today's vital summary.
 - **Clinical Medication Diary & Symptom Tracking:** Seniors and caregivers can attach clinical notes and 1-tap symptom observations (`Taken with meal`, `Empty stomach`, `Mild dizziness`, `Nausea`, `Normal / No side effects`) directly to any dose. Notes are displayed as prominent actionable pills on medication cards and persisted in local SQLite.
 - **Visual Pill Photo Identification (Visual ID):** Camera and gallery integration allowing seniors to recognize pills by sight rather than confusing generic chemical names.
@@ -73,16 +78,22 @@ For hackathon evaluation and review, CareBridge includes RevenueCat test credent
 ### 4. ⏰ Hands-Free Nightstand Desk Mode (Foldable / Flex Mode Support)
 - **High-Contrast Night Clock:** Clean digital clock, upcoming dose countdown, and large tactile "I TOOK MY PILL" button.
 - **Flex Mode Awareness:** Automatically pivots to dual-pane split layout when deployed on foldable devices (like Samsung Galaxy Z Fold) angled at 90 degrees or in landscape orientation.
-- **Voice Guidance:** Integrated Text-to-Speech (`expo-speech`) reads medication instructions aloud for visually impaired seniors.
+- **Intelligent Gated Voice Guidance:** Integrated Text-to-Speech (`expo-speech`) automatically announces upcoming medication instructions ONLY when within a ±30-minute window of the scheduled dose time, and mutes immediately upon dose confirmation or when navigating away.
 
 ### 5. 📈 Vitals Analytics & Clinical PDF Report
-- **Trend Charts:** Interactive Line Charts (`react-native-chart-kit`) visualizing Blood Pressure, Blood Sugar, and Pulse variations over time.
-- **Export Doctor Report:** Generates a structured clinical PDF with patient details, adherence percentage, prescription schedules, 30-day vitals trends, and a **Detailed Intake Audit with Clinical Notes & Observations** (`expo-print`, `expo-sharing`) allowing doctors to evaluate side effects alongside compliance.
+- **Trend Charts with Zero-Crash Guard:** Interactive Line Charts (`react-native-chart-kit`) visualizing Blood Pressure, Blood Sugar, and Pulse variations over time. Includes division-by-zero chart safety with informative empty-state feedback when fewer than 2 consecutive data points are available.
+- **Refactored A4 Clinical PDF Report:** Generates a structured clinical PDF with enlarged mobile-readable typography (32px titles, 36px metric callouts, 15px base text), high-contrast table hierarchy, and print pagination rules (`page-break-inside: avoid;`) preventing awkward row breaks across pages. Includes a **Detailed Intake Audit with Clinical Notes & Observations** (`expo-print`, `expo-sharing`) allowing physicians to evaluate real side effects alongside compliance.
 
 ### 6. 💎 In-App Purchases & CareBridge Pro (RevenueCat)
 - **RevenueCat Integration:** Native In-App Purchase paywall unlocking Unlimited Prescriptions, Multi-month PDF Exports, and Deep Analytics.
 - **Offline Entitlement Cache:** Pro status is cached locally so patients never lose access to their critical medical tools during network outages.
-- **Interactive Judge Demo Mode:** The Paywall modal includes a one-tap `[Judge Demo] Reset to Free Plan` button, allowing evaluators to instantly switch back to the Free tier (2-prescription limit) and test paywall triggers repeatedly without clearing app data.
+- **Interactive Judge Demo Controls:** The Paywall modal includes a **`[Demo] Instant Unlock Pro`** bypass button for testing on Expo Go / Simulators without billing accounts, alongside **`[Judge Demo] Reset to Free Plan`** to test paywall triggers repeatedly without clearing app data.
+
+### 7. ⚡ 60fps Micro-Animations & Ergonomics
+- **Native-Driver Animations:** Fluid, lightweight 60fps micro-interactions powered strictly by React Native's built-in `Animated` API with `useNativeDriver: true` (zero external animation library bloat, preserving 100% Expo Go compatibility).
+- **Spring Tab Bar Buttons:** Tactile scale spring (`1.0 -> 1.06`) and haptic selection feedback on tab focus without causing sibling layout reflow.
+- **Subtle Tab Switch Transitions:** Screen contents smoothly fade in and slide up (180ms ease-out) via the reusable `AnimatedScreenWrapper`.
+- **Spring Pop-in Modals & Smooth Toast:** Modal cards gently pop in with scale and opacity springs (`CustomAlertModal`, `DoseNoteModal`), and toast alerts enter and exit with smooth vertical slide and fade transitions.
 
 ---
 
@@ -97,6 +108,7 @@ CareBridge/
 ├── .env.example                   # Environment configuration template
 ├── src/
 │   ├── components/                # Reusable accessible UI components
+│   │   ├── AnimatedScreenWrapper.tsx # Reusable 60fps fade/slide screen transition wrapper
 │   │   ├── CalendarStrip.tsx      # 7-day horizontal calendar with month picker
 │   │   ├── FullMonthCalendarModal.tsx # 30/31-day modal with compliance dots
 │   │   ├── MedicineCard.tsx       # Senior-friendly medication card with clinical note trigger
@@ -145,6 +157,8 @@ To experience CareBridge with a vibrant 30-day compliance punch-card matrix, rea
 - **Email:** `demo@gmail.com`
 - **Password:** `1234`
 *(Or tap the one-touch **"Demo (Evaluator Quick Access)"** button under the login form to automatically seed 30 days of clinical intake logs, symptom observations, and vitals history into local SQLite).*
+
+> **💡 Evaluator Tip — Instant Pro Access:** To evaluate Pro features (Doctor Clinical PDF Export & 52-Week Habit Punch Card) without configuring Sandbox store accounts on Expo Go or emulators, simply open the Paywall modal and tap **`[Demo] Instant Unlock Pro`**.
 
 ### Prerequisites
 - Node.js (v18.x or later)

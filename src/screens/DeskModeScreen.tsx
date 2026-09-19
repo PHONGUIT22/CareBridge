@@ -44,7 +44,7 @@ export const DeskModeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const [logs, setLogs] = useState<DailyLogItem[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastAnnouncedLogIdRef = useRef<string | null>(null);
 
   // Toast animated values (initial: opacity 0, translateY -25)

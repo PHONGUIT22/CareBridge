@@ -13,6 +13,33 @@
 
 ---
 
+## 🎥 Video Demonstration (Under 2 Minutes)
+
+[![CareBridge Video Demo](https://img.youtube.com/vi/d40YjZN48Kw/maxresdefault.jpg)](https://www.youtube.com/watch?v=d40YjZN48Kw)
+
+> 📺 **Watch on YouTube:** [https://www.youtube.com/watch?v=d40YjZN48Kw](https://www.youtube.com/watch?v=d40YjZN48Kw)  
+> *Features a live, high-contrast demonstration of dose intake logging, symptom notes, foldable nightstand clock with voice guidance, 52-week punch card adherence, and RevenueCat Pro unlock.*
+
+---
+
+## 📱 App Screenshots & Visual Gallery
+
+<p align="center">
+  <img src="./assets/1.png" width="23%" alt="CareBridge Screen 1" />
+  <img src="./assets/2.png" width="23%" alt="CareBridge Screen 2" />
+  <img src="./assets/3.png" width="23%" alt="CareBridge Screen 3" />
+  <img src="./assets/4.png" width="23%" alt="CareBridge Screen 4" />
+</p>
+
+<p align="center">
+  <img src="./assets/5.png" width="23%" alt="CareBridge Screen 5" />
+  <img src="./assets/6.png" width="23%" alt="CareBridge Screen 6" />
+  <img src="./assets/7.png" width="23%" alt="CareBridge Screen 7" />
+  <img src="./assets/8.png" width="23%" alt="CareBridge Screen 8" />
+</p>
+
+---
+
 ## 💡 Problem & Mission
 
 As our population ages, **polypharmacy** (taking 4+ medications daily) becomes a dangerous hurdle for seniors. Cognitive decline, poor vision, tremors, and complex timing schedules lead to medication non-adherence—the leading cause of preventable elderly hospitalizations. Meanwhile, caregivers face constant stress and lack clear, timely records when communicating with physicians.

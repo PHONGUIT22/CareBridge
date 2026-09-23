@@ -13,6 +13,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { THEME } from '../constants/theme';
 import { SeniorClock } from '../components/SeniorClock';
 import { LogRepo, DailyLogItem } from '../database/logRepo';
+import { MedicineRepo } from '../database/medicineRepo';
 import { formatToISODate } from '../utils/dateUtils';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
@@ -171,6 +172,9 @@ export const DeskModeScreen: React.FC = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     await LogRepo.toggleLogStatus(nextPendingPill.logId, nextPendingPill.status);
+    if (!nextPendingPill.isTaken) {
+      await MedicineRepo.updateStock(nextPendingPill.medicineId, -1);
+    }
     await loadTodayLogs();
 
     // Trigger non-blocking animated toast notification

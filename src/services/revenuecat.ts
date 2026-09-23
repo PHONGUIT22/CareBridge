@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import Purchases, { PurchasesPackage, CustomerInfo, LOG_LEVEL } from 'react-native-purchases';
+import { getDatabase } from '../database/db';
 
 const API_KEYS = {
   android: process.env.EXPO_PUBLIC_RC_ANDROID_KEY || 'goog_ljnYRHEnlYgxgoPbHMzpJbgpBkr',
@@ -198,6 +199,14 @@ export const RevenueCatService = {
       const resetId = `demo_guest_${Date.now()}`;
       await Purchases.logIn(resetId);
       console.log('[RevenueCat] Reset to clean guest user:', resetId);
+
+      const db = await getDatabase();
+      await db.execAsync(`
+        DELETE FROM intake_logs;
+        DELETE FROM medicines;
+        DELETE FROM daily_vitals;
+        DELETE FROM caregiver_profile;
+      `);
     } catch (e) {
       console.log('[RevenueCat Reset Error]:', e);
     }

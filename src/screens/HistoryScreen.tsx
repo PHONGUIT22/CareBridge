@@ -20,6 +20,7 @@ import { PdfService } from '../services/pdfService';
 import { formatToISODate } from '../utils/dateUtils';
 import { useAlert } from '../context/AlertContext';
 import { SubscriptionService } from '../services/revenuecat';
+import { cancelMedicationReminders } from '../services/notificationService';
 import { AnimatedScreenWrapper } from '../components/AnimatedScreenWrapper';
 
 const CARD_PALETTES = [
@@ -90,6 +91,7 @@ export const HistoryScreen: React.FC = () => {
       confirmText: 'Delete',
       cancelText: 'Cancel',
       onConfirm: async () => {
+        await cancelMedicationReminders(id);
         await MedicineRepo.deleteMedicine(id);
         await loadData();
       },
